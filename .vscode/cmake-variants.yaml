@@ -1,0 +1,28 @@
+buildType:
+  default: debug
+  choices:
+    debug:
+      short: Debug
+      buildType: Debug
+    reldeb:
+      short: RelWithDebInfo
+      buildType: RelWithDebInfo
+    release:
+      short: Release
+      buildType: Release
+    asan:
+      short: Debug with ASan
+      buildType: Debug
+      settings:
+        USE_ASAN: TRUE
+    usan:
+      short: Debug with UBSan
+      buildType: Debug
+      settings:
+        USE_USAN: TRUE
+    asan+usan:
+      short: Debug with both ASan and UBSan
+      buildType: Debug
+      settings:
+        USE_ASAN: TRUE
+        USE_USAN: TRUE
