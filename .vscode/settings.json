@@ -128,6 +128,7 @@
         "typeindex": "cpp",
         "valarray": "cpp",
         "*.rh": "cpp",
-        "__verbose_abort": "cpp"
+        "__verbose_abort": "cpp",
+        "__availability": "cpp"
     }
 }

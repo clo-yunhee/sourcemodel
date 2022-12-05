@@ -77,3 +77,11 @@ add_subdirectory(implot)
 
 # speex
 add_subdirectory(speexdsp)
+
+# lsignal  (https://github.com/cpp11nullptr/lsignal)
+FetchContent_Declare(
+    sigslot
+    GIT_REPOSITORY https://github.com/palacaze/sigslot
+    GIT_TAG        e41c6e62edfa67b6402b17a627dca698a14f47a8 # v1.2.1
+)
+FetchContent_MakeAvailable(sigslot)

@@ -2,8 +2,8 @@ set(_target SourceModel)
 
 add_executable(${_target}
     main.cpp
-    platform.cpp
-    platform.h
+    application.cpp
+    application.h
     shell.html
 )
 
@@ -21,6 +21,7 @@ target_link_libraries(${_target}
             ImGui::FreeType freetype
             ImPlot
             fftw3f speex_resampler
+            Pal::Sigslot
 )
 
 set_property(TARGET ${_target} PROPERTY CXX_STANDARD 20)

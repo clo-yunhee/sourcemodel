@@ -3,16 +3,9 @@
 #include "platform.h"
 
 int main() {
-    PlatformState state;
-    state.styleDark = true;
+    Application app("SourceModel");
 
-    if (!InitPlatform(&state, "SourceModel")) {
-        std::exit(EXIT_FAILURE);
-    }
-
-    RunPlatformMainLoop(&state);
-
-    CleanupPlatform(&state);
+    app.start();
 
     std::exit(EXIT_SUCCESS);
 }
