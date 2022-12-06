@@ -1,15 +1,34 @@
 set(_target SourceModel)
 
 add_executable(${_target}
+    integration/NewtonCotes.cpp
+    integration/NewtonCotes.h
+    Application.cpp
+    Application.h
+    fzero.h
+    GlottalFlow.cpp
+    GlottalFlow.h
+    GlottalFlowModel.h
+    GlottalFlowParameter.cpp
+    GlottalFlowParameter.h
+    GlottalFlowParameters.h
+    imgui_user.cpp
+    imgui_user.h
+    LFModel.cpp
+    LFModel.h
     main.cpp
-    application.cpp
-    application.h
-    shell.html
+    math_utils.h
+    SourceModelApp.cpp
+    SourceModelApp.h
 )
 
-add_embedded_file(${_target} "fonts/whitney-medium.otf"
-                    font_whitney.h
-                    gFontWhitney)
+add_embedded_file(${_target} "fonts/roboto-regular.woff"
+                    font_roboto.h
+                    gFontRoboto)
+
+add_embedded_file(${_target} "fonts/vollkorn-regular.woff"
+                    font_vollkorn.h
+                    gFontVollkorn)
 
 target_include_directories(${_target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
@@ -27,9 +46,15 @@ target_link_libraries(${_target}
 set_property(TARGET ${_target} PROPERTY CXX_STANDARD 20)
 set_property(TARGET ${_target} PROPERTY CXX_STANDARD_REQUIRED TRUE)
 
+target_compile_definitions(${_target} PRIVATE "IMGUI_INCLUDE_IMGUI_USER_H")
+
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     set_property(TARGET ${_target}
                  PROPERTY INTERPROCEDURAL_OPTIMIZATION TRUE)
+endif()
+
+if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    target_compile_definitions(${_target} PRIVATE "SOURCEMODEL_DEBUG")
 endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
@@ -66,6 +91,17 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
     # Other EMS flags
     target_link_options(${_target} PRIVATE "SHELL:-s ALLOW_MEMORY_GROWTH=1"
                                            "SHELL:-s NO_EXIT_RUNTIME=0")
+
+    if(CMAKE_BUILD_TYPE STREQUAL "Release")
+        target_compile_options(${_target} PRIVATE "-O2")
+        target_link_options(${_target} PRIVATE "-O2")
+    elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+        target_compile_options(${_target} PRIVATE "-O1" "-g2")
+        target_link_options(${_target} PRIVATE "-O1" "-g2")
+    elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
+        target_compile_options(${_target} PRIVATE "-O1" "-g")
+        target_link_options(${_target} PRIVATE "-O1" "-g")
+    endif()
 endif()
 
 if(USE_ASAN)

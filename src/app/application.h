@@ -1,5 +1,5 @@
-#ifndef SOURCEMODEL__PLATFORM_H
-#define SOURCEMODEL__PLATFORM_H
+#ifndef SOURCEMODEL__APPLICATION_H
+#define SOURCEMODEL__APPLICATION_H
 
 #ifdef __EMSCRIPTEN__
     #include <emscripten.h>
@@ -53,9 +53,8 @@ class Application {
 
     float queryContentScale();
 
-   private:
 #ifdef __EMSCRIPTEN__
-    // Emscripten-specific callbacks
+    // Emscripten-specific callback
     static EM_BOOL emsUiCallback(int eventType, const EmscriptenUiEvent *uiEvent,
                                  void *userData);
 #endif
@@ -81,4 +80,4 @@ class Application {
     bool                 m_isDarkTheme;
 };
 
-#endif  // SOURCEMODEL__PLATFORM_H
+#endif  // SOURCEMODEL__APPLICATION_H

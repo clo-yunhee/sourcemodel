@@ -1,14 +1,17 @@
-#include <embeds/font_whitney.h>
+#include "Application.h"
+
+#include <embeds/font_roboto.h>
+#include <embeds/font_vollkorn.h>
 #include <imgui_impl_glfw.h>
 #include <imgui_impl_opengl3.h>
 #include <misc/freetype/imgui_freetype.h>
 
 #include <iostream>
-#include <string>
 
-#include "platform.h"
+#include "math_utils.h"
 
-Application::Application(const std::string& title, int initialWidth, int initialHeight)
+Application::Application(const std::string& title, const int initialWidth,
+                         const int initialHeight)
     : m_title(title),
       m_width(initialWidth),
       m_height(initialHeight),
@@ -33,7 +36,7 @@ Application::Application(const std::string& title, int initialWidth, int initial
         throw std::runtime_error("ImGui setup failed");
     }
 
-    contentScaleChanged.connect([this](float contentScale) {
+    contentScaleChanged.connect([this](const float contentScale) {
         glfwSetWindowSize(m_window, m_width * contentScale, m_height * contentScale);
     });
 
@@ -61,7 +64,7 @@ Application::~Application() {
 float Application::contentScale() const { return m_contentScale; }
 
 void Application::setContentScale(const float contentScale) {
-    if (fabs(m_contentScale - contentScale) > 1e-6) {
+    if (!fuzzyEquals(m_contentScale, contentScale)) {
         m_contentScale = contentScale;
         contentScaleChanged(contentScale);
     }
@@ -69,7 +72,7 @@ void Application::setContentScale(const float contentScale) {
 
 bool Application::isDarkTheme() const { return m_isDarkTheme; }
 
-void Application::setTheme(bool isDarkTheme) {
+void Application::setTheme(const bool isDarkTheme) {
     if (m_isDarkTheme != isDarkTheme) {
         m_isDarkTheme = isDarkTheme;
         themeChanged(isDarkTheme);
@@ -206,16 +209,36 @@ bool Application::setupImGui() {
 }
 
 void Application::setupFonts() {
-    // Setup font
+    static ImWchar rangesRoboto[] = {
+        0x0020, 0x00FF,  // Basic Latin + Latin Supplement
+        0x03B1, 0x03B1,  // Greek small letter alpha
+        0x2080, 0x2080,  // Subscript zero
+        0x2090, 0x2090,  // Subscript a
+        0x2098, 0x2098,  // Subscript m
+        0x25A1, 0x25A1,  // Unknown character symbol
+        0,
+    };
+    static ImWchar rangesVollkorn[] = {
+        0x2208,
+        0x2208,  // Element of
+        0,
+    };
+
     ImFontConfig config;
     config.FontDataOwnedByAtlas = false;
-    config.FontBuilderFlags =
-        ImGuiFreeTypeBuilderFlags_ForceAutoHint | ImGuiFreeTypeBuilderFlags_LightHinting;
+
     ImGuiIO& io = ImGui::GetIO();
     io.Fonts->Clear();
-    io.Fonts->AddFontFromMemoryTTF(embedded::gFontWhitney, embedded::gFontWhitney.size(),
-                                   17.0f * m_contentScale, &config,
-                                   io.Fonts->GetGlyphRangesDefault());
+
+    io.Fonts->AddFontFromMemoryTTF(embedded::gFontRoboto, embedded::gFontRoboto.size(),
+                                   20.0f * m_contentScale, &config, &rangesRoboto[0]);
+
+    config.MergeMode = true;
+    config.GlyphOffset.y = 1;
+    io.Fonts->AddFontFromMemoryTTF(embedded::gFontVollkorn,
+                                   embedded::gFontVollkorn.size(), 20.0f * m_contentScale,
+                                   &config, &rangesVollkorn[0]);
+
     io.Fonts->Build();
     resetDeviceObjects();
 }
@@ -262,7 +285,7 @@ void Application::mainLoopBody() {
             m_pendingIsDarkTheme = currentIsDarkTheme;
         }
 
-#ifndef NDEBUG
+#ifdef SOURCEMODEL_DEBUG
         // Show FPS if we're in a debug build
         std::string text = "FPS: " + std::to_string((int)ImGui::GetIO().Framerate);
         auto        posX = (ImGui::GetCursorPosX() + ImGui::GetContentRegionMax().x -
@@ -278,7 +301,7 @@ void Application::mainLoopBody() {
 
     renderOther();
 
-#ifndef NDEBUG
+#ifdef SOURCEMODEL_DEBUG
     // Show metrics if we're in a debug build
     ImGui::ShowMetricsWindow();
 #endif
@@ -306,31 +329,35 @@ float Application::queryContentScale() {
 #endif
 }
 
-void Application::glfwErrorCallback(int error, const char* description) {
+void Application::glfwErrorCallback(const int error, const char* description) {
     std::cerr << "GLFW error " << error << ": " << description << "\n";
 }
 
-void Application::glfwSizeCallback(GLFWwindow* window, int width, int height) {
+void Application::glfwSizeCallback(GLFWwindow* window, const int width,
+                                   const int height) {
     auto self = static_cast<Application*>(glfwGetWindowUserPointer(window));
     self->m_width = width / self->m_contentScale;
     self->m_height = height / self->m_contentScale;
 }
 
 #ifndef __EMSCRIPTEN__
-void Application::glfwScaleCallback(GLFWwindow* window, float contentScale, float) {
+void Application::glfwScaleCallback(GLFWwindow* window, const float contentScale,
+                                    const float) {
     auto self = static_cast<Application*>(glfwGetWindowUserPointer(window));
     self->m_pendingContentScale = contentScale;
 }
 #endif
 
 #ifdef __EMSCRIPTEN__
-EM_BOOL Application::emsUiCallback(int eventType, const EmscriptenUiEvent* uiEvent,
+EM_BOOL Application::emsUiCallback(const int eventType, const EmscriptenUiEvent* uiEvent,
                                    void* userData) {
     auto app = static_cast<Application*>(userData);
     if (eventType == EMSCRIPTEN_EVENT_RESIZE) {
         app->m_width = uiEvent->windowInnerWidth;
         app->m_height = uiEvent->windowInnerHeight;
         emscripten_set_element_css_size("#canvas", app->m_width, app->m_height);
+        // Force it to behave as if content scale is reset.
+        app->m_contentScale = -1;
         app->m_pendingContentScale = app->queryContentScale();
         return EM_TRUE;
     }

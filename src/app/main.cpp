@@ -1,9 +1,9 @@
 #include <cstdlib>
 
-#include "platform.h"
+#include "SourceModelApp.h"
 
 int main() {
-    Application app("SourceModel");
+    SourceModelApp app;
 
     app.start();
 
