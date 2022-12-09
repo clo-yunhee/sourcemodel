@@ -1,11 +1,19 @@
 set(_target SourceModel)
 
 add_executable(${_target}
-    integration/NewtonCotes.cpp
-    integration/NewtonCotes.h
+    math/LTTB.cpp
+    math/LTTB.h
+    math/utils.h
+    models/KLGLOTT88.cpp
+    models/KLGLOTT88.h
+    models/LF.cpp
+    models/LF.h
+    models/RosenbergC.cpp
+    models/RosenbergC.h
+    models/RPlusPlus.cpp
+    models/RPlusPlus.h
     Application.cpp
     Application.h
-    fzero.h
     GlottalFlow.cpp
     GlottalFlow.h
     GlottalFlowModel.h
@@ -14,10 +22,7 @@ add_executable(${_target}
     GlottalFlowParameters.h
     imgui_user.cpp
     imgui_user.h
-    LFModel.cpp
-    LFModel.h
     main.cpp
-    math_utils.h
     SourceModelApp.cpp
     SourceModelApp.h
 )
@@ -41,6 +46,7 @@ target_link_libraries(${_target}
             ImPlot
             fftw3f speex_resampler
             Pal::Sigslot
+            Boost::math
 )
 
 set_property(TARGET ${_target} PROPERTY CXX_STANDARD 20)

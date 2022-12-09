@@ -8,7 +8,7 @@
 
 #include <iostream>
 
-#include "math_utils.h"
+#include "math/utils.h"
 
 Application::Application(const std::string& title, const int initialWidth,
                          const int initialHeight)

@@ -1,11 +1,12 @@
-#ifndef SOURCEMODEL__LF_MODEL_H
-#define SOURCEMODEL__LF_MODEL_H
+#ifndef SOURCEMODEL__MODELS_LF_H
+#define SOURCEMODEL__MODELS_LF_H
 
-#include "GlottalFlowModel.h"
+#include "../GlottalFlowModel.h"
 
-class LFModel : public GlottalFlowModel {
+namespace models {
+class LF : public GlottalFlowModel {
    public:
-    ~LFModel() override {}
+    ~LF() override {}
 
     double evaluate(double t) override;
 
@@ -21,5 +22,6 @@ class LFModel : public GlottalFlowModel {
     double m_epsilon;
     double m_alpha;
 };
+}  // namespace models
 
-#endif  //  SOURCEMODEL__LF_MODEL_H
+#endif  //  SOURCEMODEL__MODELS_LF_H

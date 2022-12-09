@@ -6,7 +6,7 @@
 
 class GlottalFlowParameter {
    public:
-    GlottalFlowParameter(double initial = 0, double min = DBL_EPSILON, double max = 1.0);
+    GlottalFlowParameter(double initial = 0, double min = 0, double max = 1);
 
     void disconnectAll();
 
@@ -22,12 +22,17 @@ class GlottalFlowParameter {
     void                    setMax(double);
     sigslot::signal<double> maxChanged;
 
+    bool isFixed() const;
+    void setFixed(double);
+
    private:
     void enforceBounds();
 
     double m_value;
     double m_min;
     double m_max;
+
+    bool m_isFixed;
 };
 
 #endif  //  SOURCEMODEL__GLOTTAL_FLOW_PARAMETER_H

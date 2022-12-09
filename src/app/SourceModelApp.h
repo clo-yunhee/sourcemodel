@@ -3,8 +3,6 @@
 
 #include "Application.h"
 #include "GlottalFlow.h"
-#include "LFModel.h"
-#include "integration/NewtonCotes.h"
 
 class SourceModelApp : public Application {
    public:
@@ -19,8 +17,7 @@ class SourceModelApp : public Application {
     void renderOther() override;
 
    private:
-    void renderParameterControl(const GlottalFlowParameter& paramSrc,
-                                GlottalFlowParameter& paramDst, const char* name,
+    void renderParameterControl(GlottalFlowParameter& param, const char* name,
                                 const char* displayName, int precision);
 
     GlottalFlow m_glottalFlow;

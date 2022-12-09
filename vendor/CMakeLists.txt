@@ -85,3 +85,11 @@ FetchContent_Declare(
     GIT_TAG        e41c6e62edfa67b6402b17a627dca698a14f47a8 # v1.2.1
 )
 FetchContent_MakeAvailable(sigslot)
+
+# Boost.Math
+FetchContent_Declare(
+    BoostMath
+    GIT_REPOSITORY https://github.com/boostorg/math
+    GIT_TAG        db2a7cbb44a84c4c9cba62232c07f18b22bd965d # standalone 1.80.0
+)
+FetchContent_MakeAvailable(BoostMath)
