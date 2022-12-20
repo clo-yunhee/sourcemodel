@@ -329,16 +329,36 @@ void Application::mainLoopBody() {
                 }
             }
 
+#if defined(__EMSCRIPTEN__) && !defined(SOURCEMODEL_DEBUG)
+            const char* madeByText = "Made by Clo Yun-Hee Dufour (clo-yunhee on GitHub)";
+            auto        madeByTextPosX =
+                ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x -
+                ImGui::CalcTextSize(madeByText).x - ImGui::GetStyle().ItemSpacing.x;
+#endif
+
             if (m_doShowFps) {
                 // Show FPS if we're in a debug build
                 std::string text =
                     "FPS: " + std::to_string((int)ImGui::GetIO().Framerate);
+#if defined(__EMSCRIPTEN__) && !defined(SOURCEMODEL_DEBUG)
+                auto posX = madeByTextPosX - ImGui::CalcTextSize(text.c_str()).x -
+                            2 * ImGui::GetStyle().ItemSpacing.x;
+#else
                 auto posX = ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x -
                             ImGui::CalcTextSize(text.c_str()).x -
                             ImGui::GetStyle().ItemSpacing.x;
-                if (posX > ImGui::GetCursorPosX()) ImGui::SetCursorPosX(posX);
+#endif
+                if (posX > ImGui::GetCursorPosX()) {
+                    ImGui::SetCursorPosX(posX);
+                }
                 ImGui::MenuItem(text.c_str(), nullptr, false, false);
             }
+
+#if defined(__EMSCRIPTEN__) && !defined(SOURCEMODEL_DEBUG)
+            if (madeByTextPosX > ImGui::GetCursorPosX())
+                ImGui::SetCursorPosX(madeByTextPosX);
+            ImGui::MenuItem(madeByText, nullptr, false, false);
+#endif
 
             ImGui::EndMainMenuBar();
         }
