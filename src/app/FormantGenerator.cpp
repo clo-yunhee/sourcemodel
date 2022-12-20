@@ -4,14 +4,24 @@ using nativeformat::param::createParam;
 
 FormantGenerator::FormantGenerator(const AudioTime&           time,
                                    const std::vector<double>& input)
-    : BufferedGenerator(time),
-      m_filters({{800, 0, 80},
-                 {1150, -6, 90},
-                 {2900, -32, 120},
-                 {3900, -20, 130},
-                 {4650, -50, 140}}),
-      m_input(input) {
+    : BufferedGenerator(time), m_input(input) {
+    // Initializing it manually instead of an initializer list constructor because
+    // for some reason Emscripten doesn't like it
+    double initial[][3] = {{800, 0, 80},
+                           {1150, -6, 90},
+                           {2900, -32, 120},
+                           {3900, -20, 130},
+                           {4650, -50, 140}};
+
     for (int k = 0; k < kNumFormants; ++k) {
+        const double fk = initial[k][0];
+        const double gk = initial[k][1];
+        const double bk = initial[k][2];
+
+        m_filters[k].setFrequency(fk);
+        m_filters[k].setGain(gk);
+        m_filters[k].setBandwidth(bk);
+
         m_targetF[k] = m_filters[k].frequency();
         m_targetB[k] = m_filters[k].bandwidth();
         m_targetG[k] = m_filters[k].gain();

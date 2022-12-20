@@ -5,7 +5,7 @@
 
 class OneFormantFilter {
    public:
-    OneFormantFilter(double fc, double gain, double bw, double fs = 48000);
+    OneFormantFilter(double fc = 100, double gain = 0, double bw = 50, double fs = 48000);
 
     double sampleRate() const;
     void   setSampleRate(double fs);
