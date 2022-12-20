@@ -132,6 +132,13 @@
         "__availability": "cpp",
         "execution": "cpp",
         "future": "cpp",
-        "*.ipp": "cpp"
+        "*.ipp": "cpp",
+        "api.h": "c",
+        "coroutine": "cpp",
+        "regex": "cpp",
+        "source_location": "cpp",
+        "strstream": "cpp",
+        "shared_mutex": "cpp",
+        "cfloat": "cpp"
     }
 }

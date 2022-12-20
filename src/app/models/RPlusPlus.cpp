@@ -4,7 +4,7 @@
 
 using namespace models;
 
-double RPlusPlus::evaluate(double t) {
+double RPlusPlus::evaluate(double t) const {
     static constexpr double T0 = 1;
 
     double dg;
@@ -33,7 +33,7 @@ bool RPlusPlus::fitParameters(const GlottalFlowParameters& params) {
     const double Qa = params.Qa.value();
 
     const double Te = Oq * T0;
-    const double Tp = am * Oq;
+    const double Tp = (am > 0.5 ? am : 0.5 + 1e-6) * Oq * T0;
     const double Ta = Qa * (1 - Oq) * T0;
 
     double Tx;
@@ -60,9 +60,22 @@ void RPlusPlus::updateParameterBounds(GlottalFlowParameters& params) {
     params.Oq.setMin(0.35);
     params.Oq.setMax(0.85);
 
-    params.am.setMin(0.5 + 0.002);
-    params.am.setMax(1 - 0.002);
-
     params.Qa.setMin(0);
-    params.Qa.setMax(0.5);
+    params.Qa.setMax(0.9);
+
+    params.am.setMin(0.55);
+
+    static constexpr double T0 = 1;
+    const double            Te = params.Oq.value();
+    const double            Ta = params.Qa.value() * (1 - Te);
+
+    if (Ta > 1e-3) {
+        const double D = 1 - ((T0 - Te) / Ta) / (exp((T0 - Te) / Ta) - 1);
+        const double maxAm = .75 * (Te + 4 * Ta * D) / (Te + 3 * Ta * D);
+
+        // Round to 3rd decimal digit.
+        params.am.setMax(std::round(maxAm * 1e3) / 1e3);
+    } else {
+        params.am.setMax(.75);
+    }
 }

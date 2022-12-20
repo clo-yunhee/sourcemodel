@@ -88,6 +88,8 @@ void ImGui::EndGroupPanel() {
     ImRect frameRect = ImRect(itemMin + halfFrame, itemMax - ImVec2(halfFrame.x, 0.0f));
     labelRect.Min.x -= itemSpacing.x;
     labelRect.Max.x += itemSpacing.x;
+    ImVec4 bgColor = ImGui::GetStyleColorVec4(ImGuiCol_FrameBg);
+    bgColor.w = 0.09;
     for (int i = 0; i < 4; ++i) {
         switch (i) {
             // left half-plane
@@ -112,12 +114,19 @@ void ImGui::EndGroupPanel() {
                 break;
         }
 
-        ImGui::GetWindowDrawList()->AddRect(
-            frameRect.Min, frameRect.Max,
-            ImColor(ImGui::GetStyleColorVec4(ImGuiCol_Border)), halfFrame.x);
+        ImGui::GetWindowDrawList()->AddRectFilled(frameRect.Min, frameRect.Max,
+                                                  ImColor(bgColor), halfFrame.x * 2.0f);
 
         ImGui::PopClipRect();
     }
+
+    ImGui::GetWindowDrawList()->AddRectFilled(labelRect.Min, labelRect.Max + ImVec2(0, 1),
+                                              ImColor(bgColor), halfFrame.x);
+
+    ImGui::GetWindowDrawList()->AddRectFilled(
+        ImVec2(labelRect.Min.x, labelRect.Max.y),
+        ImVec2(labelRect.Max.x, labelRect.Max.y + 0.5f * itemSpacing.y), ImColor(bgColor),
+        halfFrame.x);
 
     ImGui::PopStyleVar(2);
 

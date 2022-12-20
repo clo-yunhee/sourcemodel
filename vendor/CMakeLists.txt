@@ -1,8 +1,8 @@
 include(FetchContent)
 
 # GLFW
-if(EMSCRIPTEN)
-
+if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+    # Use Emscripten GLFW flag
 else()
     FetchContent_Declare(
         glfw
@@ -31,16 +31,12 @@ foreach(_freetype_option "SKIP_INSTALL_HEADERS" "SKIP_INSTALL_LIBRARIES"
 endforeach()
 FetchContent_MakeAvailable(freetype)
 
-# portaudio
-FetchContent_Declare(
-    portaudio
-    GIT_REPOSITORY https://github.com/PortAudio/portaudio.git
-    GIT_TAG        af42647e3804f6a2472a00d943aaeedd641f7966
-)
-set(PA_BUILD_STATIC ON CACHE INTERNAL "")
-set(PA_BUILD_SHARED OFF CACHE INTERNAL "")
-set(PA_ENABLE_DEBUG_OUTPUT OFF CACHE INTERNAL "")
-FetchContent_MakeAvailable(portaudio)
+# RtAudio
+if(NOT CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+    add_subdirectory(rtaudio)
+endif()
+
+# RtAudio
 
 # fftw3
 FetchContent_Declare(
@@ -51,7 +47,7 @@ FetchContent_Declare(
 set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "")
 set(BUILD_TESTS OFF CACHE INTERNAL "")
 set(ENABLE_SSE ON CACHE INTERNAL "")
-set(ENABLE_FLOAT ON CACHE INTERNAL "")
+set(ENABLE_FLOAT OFF CACHE INTERNAL "")
 if(CMAKE_CXX_COMPILER_ID STREQUAL MSVC OR CMAKE_CXX_SIMULATE_ID STREQUAL MSVC)
     set(LIBM_LIBRARY OFF CACHE INTERNAL "")
 endif()
@@ -65,9 +61,9 @@ if(NOT fftw3_POPULATED)
 
     add_subdirectory(${fftw3_SOURCE_DIR} ${fftw3_BINARY_DIR})
 
-    target_include_directories(fftw3f INTERFACE $<BUILD_INTERFACE:${fftw3_SOURCE_DIR}/api>)
+    target_include_directories(fftw3 INTERFACE $<BUILD_INTERFACE:${fftw3_SOURCE_DIR}/api>)
     if(WIN32)
-        target_compile_definitions(fftw3f PRIVATE HAVE_ALIGNED_MALLOC)
+        target_compile_definitions(fftw3 PRIVATE HAVE_ALIGNED_MALLOC)
     endif()
 endif()
 
@@ -86,10 +82,20 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(sigslot)
 
-# Boost.Math
+# Boost
 FetchContent_Declare(
-    BoostMath
-    GIT_REPOSITORY https://github.com/boostorg/math
-    GIT_TAG        db2a7cbb44a84c4c9cba62232c07f18b22bd965d # standalone 1.80.0
+    Boost
+    URL      https://github.com/boostorg/boost/releases/download/boost-1.81.0/boost-1.81.0.tar.gz
+    URL_HASH SHA256=121DA556B718FD7BD700B5F2E734F8004F1CFA78B7D30145471C526BA75A151C
 )
-FetchContent_MakeAvailable(BoostMath)
+set(BOOST_INCLUDE_LIBRARIES "circular_buffer;math" CACHE INTERNAL "")
+FetchContent_MakeAvailable(Boost)
+
+# NFParam (AudioParam-like library)
+FetchContent_Declare(
+    NFParam
+    GIT_REPOSITORY https://github.com/clo-yunhee/NFParam
+    GIT_TAG        ae920f0a1ed5c3a9c2cfa76cae48b2addc5c855d
+)
+set(BUILD_TESTING OFF CACHE INTERNAL "")
+FetchContent_MakeAvailable(NFParam)

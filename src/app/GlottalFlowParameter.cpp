@@ -4,15 +4,11 @@
 
 #include "math/utils.h"
 
-GlottalFlowParameter::GlottalFlowParameter(const double initial, const double min,
-                                           const double max)
-    : m_value(initial), m_min(min), m_max(max), m_isFixed(false) {}
+GlottalFlowParameter::GlottalFlowParameter(const std::string& name, const double initial,
+                                           const double min, const double max)
+    : m_name(name), m_value(initial), m_min(min), m_max(max), m_isFixed(false) {}
 
-void GlottalFlowParameter::disconnectAll() {
-    valueChanged.disconnect_all();
-    minChanged.disconnect_all();
-    maxChanged.disconnect_all();
-}
+const std::string& GlottalFlowParameter::name() const { return m_name; }
 
 double GlottalFlowParameter::value() const { return m_value; }
 
@@ -21,7 +17,7 @@ void GlottalFlowParameter::setValue(double value) {
     if (!fuzzyEquals(m_value, value)) {
         m_value = value;
         m_isFixed = false;
-        valueChanged(value);
+        valueChanged(m_name, value);
     }
 }
 
@@ -31,7 +27,6 @@ void GlottalFlowParameter::setMin(const double min) {
     if (!fuzzyEquals(m_min, min)) {
         m_min = min;
         m_isFixed = false;
-        minChanged(min);
         enforceBounds();
     }
 }
@@ -42,7 +37,6 @@ void GlottalFlowParameter::setMax(const double max) {
     if (!fuzzyEquals(m_max, max)) {
         m_max = max;
         m_isFixed = false;
-        maxChanged(max);
         enforceBounds();
     }
 }
@@ -50,10 +44,10 @@ void GlottalFlowParameter::setMax(const double max) {
 void GlottalFlowParameter::enforceBounds() {
     if (m_value < m_min) {
         m_value = m_min;
-        valueChanged(m_min);
+        valueChanged(m_name, m_min);
     } else if (m_value > m_max) {
         m_value = m_max;
-        valueChanged(m_max);
+        valueChanged(m_name, m_max);
     }
 }
 

@@ -2,7 +2,7 @@
 
 using namespace models;
 
-double KLGLOTT88::evaluate(double t) {
+double KLGLOTT88::evaluate(double t) const {
     static constexpr double T0 = 1;
 
     double dg;

@@ -2,6 +2,7 @@
 #define SOURCEMODEL__GLOTTAL_FLOW_H
 
 #include <memory>
+#include <sigslot/signal.hpp>
 
 #include "GlottalFlowModel.h"
 #include "GlottalFlowParameters.h"
@@ -12,8 +13,9 @@ class GlottalFlow {
 
     GlottalFlowParameters& parameters();
 
-    void                 setModelType(GlottalFlowModelType);
-    GlottalFlowModelType modelType() const;
+    GlottalFlowModelType                  modelType() const;
+    void                                  setModelType(GlottalFlowModelType);
+    sigslot::signal<GlottalFlowModelType> modelTypeChanged;
 
     void markDirty();
     bool isDirty() const;
@@ -35,6 +37,9 @@ class GlottalFlow {
     const std::pair<double, double>& gMax() const;
     double                           gAmplitude() const;
 
+    std::weak_ptr<GlottalFlowModel>       genModel();
+    std::weak_ptr<const GlottalFlowModel> genModel() const;
+
    private:
     template <typename T>
     void setModel() {
@@ -42,14 +47,23 @@ class GlottalFlow {
         m_model->updateParameterBounds(m_parameters);
         m_model->fitParameters(m_parameters);
         markDirty();
+        // Another GFM instance used for generating audio.
+        // Don't init parameters because that'll be done by the generator.
+        m_modelForGen = std::make_unique<T>();
     }
+
+    void paramChanged(const std::string& name, double value);
 
     GlottalFlowParameters m_parameters;
 
     GlottalFlowModelType              m_modelType;
     std::unique_ptr<GlottalFlowModel> m_model;
 
-    bool                      m_isDirty;
+    // Another GFM instance used for generating audio.
+    std::shared_ptr<GlottalFlowModel> m_modelForGen;
+
+    bool m_isDirty;
+
     int                       m_sampleCount;
     std::vector<double>       m_times;
     std::vector<double>       m_flowDerivative;

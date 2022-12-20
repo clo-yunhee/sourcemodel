@@ -2,13 +2,10 @@
 
 #include <boost/math/constants/constants.hpp>
 
-using boost::math::constants::half_pi;
-using boost::math::constants::pi;
-using boost::math::constants::two_div_pi;
-
+using namespace boost::math::double_constants;
 using namespace models;
 
-double RosenbergC::evaluate(double t) {
+double RosenbergC::evaluate(double t) const {
     static constexpr double T0 = 1;
 
     double dg;
@@ -18,10 +15,9 @@ double RosenbergC::evaluate(double t) {
     }
 
     if (t <= m_Tp) {
-        dg = pi<double>() * m_A / (2 * m_Tp) * std::sin((pi<double>() * t) / m_Tp);
+        dg = half_pi * m_A / m_Tp * std::sin((pi * t) / m_Tp);
     } else if (t <= m_Tp + m_Tn) {
-        dg = -pi<double>() * m_A / (2 * m_Tn) *
-             std::sin((half_pi<double>() * (t - m_Tp)) / m_Tn);
+        dg = -half_pi * m_A / m_Tn * std::sin((half_pi * (t - m_Tp)) / m_Tn);
     } else {
         dg = 0;
     }
@@ -34,7 +30,7 @@ bool RosenbergC::fitParameters(const GlottalFlowParameters& params) {
 
     m_Tp = am * Oq;
     m_Tn = Oq - m_Tp;
-    m_A = two_div_pi<double>() * m_Tn;
+    m_A = two_div_pi * m_Tn;
 
     return true;
 }

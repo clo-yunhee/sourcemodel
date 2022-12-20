@@ -1,5 +1,6 @@
 #include "Application.h"
 
+#include <embeds/font_faSolid.h>
 #include <embeds/font_roboto.h>
 #include <embeds/font_vollkorn.h>
 #include <imgui_impl_glfw.h>
@@ -17,7 +18,17 @@ Application::Application(const std::string& title, const int initialWidth,
       m_height(initialHeight),
       m_glslVersion(nullptr),
       m_window(nullptr),
-      m_isDarkTheme(true) {
+      m_pendingIsDarkTheme(true),
+#ifdef SOURCEMODEL_DEBUG
+      m_doShowDebugMenu(true),
+      m_doShowFps(true),
+      m_doShowMetrics(false)
+#else
+      m_doShowDebugMenu(false),
+      m_doShowFps(false),
+      m_doShowMetrics(false)
+#endif
+{
 #ifdef __EMSCRIPTEN__
     // Ignore initialWidth and initialHeight on Emscripten, fit the page.
     m_width = EM_ASM_INT(return window.innerWidth * window.devicePixelRatio);
@@ -95,6 +106,8 @@ void Application::resetDeviceObjects() {
     }
 }
 
+float Application::em() const { return 20.0f * m_contentScale; }
+
 void Application::setupThemeColors(ImGuiStyle& style) {
     if (m_isDarkTheme) {
         ImGui::StyleColorsDark(&style);
@@ -106,6 +119,8 @@ void Application::setupThemeColors(ImGuiStyle& style) {
 }
 
 void Application::setupThemeSizes(ImGuiStyle& style) { style.WindowRounding = 3.0f; }
+
+void Application::renderMenuBar() {}
 
 void Application::renderMain() {
     ImGui::TextUnformatted("Hello, world!");
@@ -155,7 +170,8 @@ bool Application::initGLFW() {
     glfwSetWindowUserPointer(m_window, this);
     glfwMakeContextCurrent(m_window);
 
-#ifndef __EMSCRIPTEN__
+#ifdef __EMSCRIPTEN__
+#else
     // Register content scale events.
     glfwSetWindowContentScaleCallback(m_window, glfwScaleCallback);
 
@@ -212,7 +228,7 @@ void Application::setupFonts() {
     static ImWchar rangesRoboto[] = {
         0x0020, 0x00FF,  // Basic Latin + Latin Supplement
         0x03B1, 0x03B1,  // Greek small letter alpha
-        0x2080, 0x2080,  // Subscript zero
+        0x2080, 0x2085,  // Subscript 0 to 5
         0x2090, 0x2090,  // Subscript a
         0x2098, 0x2098,  // Subscript m
         0x25A1, 0x25A1,  // Unknown character symbol
@@ -223,6 +239,11 @@ void Application::setupFonts() {
         0x2208,  // Element of
         0,
     };
+    static ImWchar rangesFaSolid[] = {
+        0xF04B,  // Play
+        0xF04C,  // Pause
+        0,
+    };
 
     ImFontConfig config;
     config.FontDataOwnedByAtlas = false;
@@ -231,13 +252,19 @@ void Application::setupFonts() {
     io.Fonts->Clear();
 
     io.Fonts->AddFontFromMemoryTTF(embedded::gFontRoboto, embedded::gFontRoboto.size(),
-                                   20.0f * m_contentScale, &config, &rangesRoboto[0]);
+                                   em(), &config, &rangesRoboto[0]);
 
     config.MergeMode = true;
     config.GlyphOffset.y = 1;
     io.Fonts->AddFontFromMemoryTTF(embedded::gFontVollkorn,
-                                   embedded::gFontVollkorn.size(), 20.0f * m_contentScale,
-                                   &config, &rangesVollkorn[0]);
+                                   embedded::gFontVollkorn.size(), em(), &config,
+                                   &rangesVollkorn[0]);
+
+    config.MergeMode = true;
+    config.GlyphMinAdvanceX = em() + 1;
+    config.GlyphOffset.y = 2;
+    io.Fonts->AddFontFromMemoryTTF(embedded::gFontFaSolid, embedded::gFontFaSolid.size(),
+                                   em() + 1, &config, &rangesFaSolid[0]);
 
     io.Fonts->Build();
     resetDeviceObjects();
@@ -274,37 +301,59 @@ void Application::mainLoopBody() {
     ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
     if (ImGui::Begin("Main", nullptr,
                      ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoResize |
-                         ImGuiWindowFlags_NoBringToFrontOnFocus)) {
-        renderMain();
+                         ImGuiWindowFlags_NoBringToFrontOnFocus |
+                         ImGuiWindowFlags_MenuBar)) {
+        if (ImGui::BeginMainMenuBar()) {
+            renderMenuBar();
 
-        // Toggle for dark/light theme
-        ImGui::SetCursorPosY(ImGui::GetContentRegionMax().y - ImGui::GetFrameHeight() -
-                             ImGui::GetStyle().ItemSpacing.y);
-        bool currentIsDarkTheme(m_isDarkTheme);
-        if (ImGui::Checkbox("Dark theme", &currentIsDarkTheme)) {
-            m_pendingIsDarkTheme = currentIsDarkTheme;
+            if (ImGui::BeginMenu("View")) {
+                // Toggle for dark/light theme
+                bool currentIsDarkTheme(m_isDarkTheme);
+                if (ImGui::MenuItem("Dark theme", nullptr, &currentIsDarkTheme)) {
+                    m_pendingIsDarkTheme = currentIsDarkTheme;
+                }
+
+#ifndef SOURCEMODEL_DEBUG
+                ImGui::MenuItem("Debug menu", nullptr, &m_doShowDebugMenu);
+#endif
+
+                ImGui::EndMenu();
+            }
+
+            if (m_doShowDebugMenu) {
+                ImGui::Separator();
+                if (ImGui::BeginMenu("Debug")) {
+                    ImGui::MenuItem("Show FPS", nullptr, &m_doShowFps);
+                    ImGui::MenuItem("Show ImGui metrics", nullptr, &m_doShowMetrics);
+                    ImGui::EndMenu();
+                }
+            }
+
+            if (m_doShowFps) {
+                // Show FPS if we're in a debug build
+                std::string text =
+                    "FPS: " + std::to_string((int)ImGui::GetIO().Framerate);
+                auto posX = ImGui::GetCursorPosX() + ImGui::GetContentRegionAvail().x -
+                            ImGui::CalcTextSize(text.c_str()).x -
+                            ImGui::GetStyle().ItemSpacing.x;
+                if (posX > ImGui::GetCursorPosX()) ImGui::SetCursorPosX(posX);
+                ImGui::MenuItem(text.c_str(), nullptr, false, false);
+            }
+
+            ImGui::EndMainMenuBar();
         }
 
-#ifdef SOURCEMODEL_DEBUG
-        // Show FPS if we're in a debug build
-        std::string text = "FPS: " + std::to_string((int)ImGui::GetIO().Framerate);
-        auto        posX = (ImGui::GetCursorPosX() + ImGui::GetContentRegionMax().x -
-                     ImGui::CalcTextSize(text.c_str()).x - ImGui::GetScrollX() -
-                     2 * ImGui::GetStyle().ItemSpacing.x);
-        if (posX > ImGui::GetCursorPosX()) ImGui::SetCursorPosX(posX);
-        ImGui::SetCursorPosY(2 * ImGui::GetStyle().ItemSpacing.y);
-        ImGui::TextUnformatted(text.c_str());
-#endif
+        renderMain();
     }
     ImGui::End();
     ImGui::PopStyleVar();
 
     renderOther();
 
-#ifdef SOURCEMODEL_DEBUG
-    // Show metrics if we're in a debug build
-    ImGui::ShowMetricsWindow();
-#endif
+    if (m_doShowMetrics) {
+        // Show metrics if we're in a debug build
+        ImGui::ShowMetricsWindow();
+    }
 
     // Rendering
     ImGui::Render();

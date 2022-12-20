@@ -34,10 +34,13 @@ class Application {
     void start();
     void resetDeviceObjects();
 
+    float em() const;
+
    protected:
     virtual void setupThemeColors(ImGuiStyle &style);
     virtual void setupThemeSizes(ImGuiStyle &style);
 
+    virtual void renderMenuBar();
     virtual void renderMain();
     virtual void renderOther();
 
@@ -78,6 +81,10 @@ class Application {
 
     std::optional<float> m_pendingIsDarkTheme;
     bool                 m_isDarkTheme;
+
+    bool m_doShowDebugMenu;
+    bool m_doShowFps;
+    bool m_doShowMetrics;
 };
 
 #endif  // SOURCEMODEL__APPLICATION_H

@@ -1,6 +1,19 @@
 set(_target SourceModel)
 
 add_executable(${_target}
+    audio/BufferedGenerator.cpp
+    audio/BufferedGenerator.h
+    math/filters/Butterworth.cpp
+    math/filters/Butterworth.h
+    math/filters/SOSFilter.cpp
+    math/filters/SOSFilter.h
+    math/filters/SVFBiquad.cpp
+    math/filters/SVFBiquad.h
+    math/filters/SVFPiece.cpp
+    math/filters/SVFPiece.h
+    math/filters/zpk2sos.cpp
+    math/DTFT.cpp
+    math/DTFT.h
     math/LTTB.cpp
     math/LTTB.h
     math/utils.h
@@ -14,6 +27,10 @@ add_executable(${_target}
     models/RPlusPlus.h
     Application.cpp
     Application.h
+    FormantGenerator.cpp
+    FormantGenerator.h
+    GeneratorSpectrum.cpp
+    GeneratorSpectrum.h
     GlottalFlow.cpp
     GlottalFlow.h
     GlottalFlowModel.h
@@ -23,6 +40,10 @@ add_executable(${_target}
     imgui_user.cpp
     imgui_user.h
     main.cpp
+    OneFormantFilter.cpp
+    OneFormantFilter.h
+    SourceGenerator.cpp
+    SourceGenerator.h
     SourceModelApp.cpp
     SourceModelApp.h
 )
@@ -35,18 +56,23 @@ add_embedded_file(${_target} "fonts/vollkorn-regular.woff"
                     font_vollkorn.h
                     gFontVollkorn)
 
+add_embedded_file(${_target} "fonts/fa6-solid.woff"
+                    font_faSolid.h
+                    gFontFaSolid)
+
 target_include_directories(${_target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(${_target}
-    PRIVATE PortAudio
-            ImGui::Core
+    PRIVATE ImGui::Core
             ImGui::ImplGlfw
             ImGui::ImplOpenGL3
             ImGui::FreeType freetype
             ImPlot
-            fftw3f speex_resampler
+            fftw3 speex_resampler
             Pal::Sigslot
             Boost::math
+            Boost::circular_buffer
+            NFParam
 )
 
 set_property(TARGET ${_target} PROPERTY CXX_STANDARD 20)
@@ -99,15 +125,34 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
                                            "SHELL:-s NO_EXIT_RUNTIME=0")
 
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
-        target_compile_options(${_target} PRIVATE "-O2")
-        target_link_options(${_target} PRIVATE "-O2")
+        target_compile_options(${_target} PRIVATE "-O3")
+        target_link_options(${_target} PRIVATE "-O3" "--closure 2")
     elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
         target_compile_options(${_target} PRIVATE "-O1" "-g2")
         target_link_options(${_target} PRIVATE "-O1" "-g2")
     elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
         target_compile_options(${_target} PRIVATE "-O1" "-g")
-        target_link_options(${_target} PRIVATE "-O1" "-g")
+        target_link_options(${_target} PRIVATE "-O1" "-g" "-gsource-map" "--source-map-base=/")
     endif()
+endif()
+
+# On Emscriten use SDL2 audio, otherwise use PortAudio
+if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+    target_compile_definitions(${_target} PRIVATE "USING_WEBAUDIO")
+    target_link_options(${_target} PRIVATE "SHELL:-s USE_SDL=2")
+    target_sources(${_target} PRIVATE
+        audio/webaudio/AudioOutput.cpp
+        audio/webaudio/AudioOutput.h
+    )
+else()
+    target_compile_definitions(${_target} PRIVATE "USING_RTAUDIO")
+    target_link_libraries(${_target} PRIVATE RtAudio::RtAudio)
+    target_sources(${_target} PRIVATE
+        audio/rtaudio/AudioDevices.cpp
+        audio/rtaudio/AudioDevices.h
+        audio/rtaudio/AudioOutput.cpp
+        audio/rtaudio/AudioOutput.h
+    )
 endif()
 
 if(USE_ASAN)

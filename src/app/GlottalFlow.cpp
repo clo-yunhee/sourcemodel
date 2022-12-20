@@ -15,26 +15,14 @@ GlottalFlow::GlottalFlow()
       m_sampleCount(0),
       m_flowDerivativeAmplitude(0),
       m_flowAmplitude(0) {
-    m_parameters.Oq.valueChanged.connect([&](double) {
-        m_model->updateParameterBounds(m_parameters);
-        m_model->fitParameters(m_parameters);
-        markDirty();
-    });
-
-    m_parameters.am.valueChanged.connect([&](double) {
-        m_model->updateParameterBounds(m_parameters);
-        m_model->fitParameters(m_parameters);
-        markDirty();
-    });
-
-    m_parameters.Qa.valueChanged.connect([&](double) {
-        m_model->updateParameterBounds(m_parameters);
-        m_model->fitParameters(m_parameters);
-        markDirty();
-    });
+    m_parameters.Oq.valueChanged.connect(&GlottalFlow::paramChanged, this);
+    m_parameters.am.valueChanged.connect(&GlottalFlow::paramChanged, this);
+    m_parameters.Qa.valueChanged.connect(&GlottalFlow::paramChanged, this);
 }
 
 GlottalFlowParameters& GlottalFlow::parameters() { return m_parameters; }
+
+GlottalFlowModelType GlottalFlow::modelType() const { return m_modelType; }
 
 void GlottalFlow::setModelType(const GlottalFlowModelType modelType) {
     switch (modelType) {
@@ -52,9 +40,8 @@ void GlottalFlow::setModelType(const GlottalFlowModelType modelType) {
             break;
     }
     m_modelType = modelType;
+    modelTypeChanged(modelType);
 }
-
-GlottalFlowModelType GlottalFlow::modelType() const { return m_modelType; }
 
 void GlottalFlow::markDirty() { m_isDirty = true; }
 
@@ -104,7 +91,7 @@ void GlottalFlow::updateSamples() {
     m_isDirty = false;
 }
 
-void GlottalFlow::setSampleCount(int sampleCount) {
+void GlottalFlow::setSampleCount(const int sampleCount) {
     if (m_sampleCount != sampleCount) {
         m_sampleCount = sampleCount;
         markDirty();
@@ -134,3 +121,15 @@ const std::pair<double, double>& GlottalFlow::gMin() const { return m_flowMin; }
 const std::pair<double, double>& GlottalFlow::gMax() const { return m_flowMax; }
 
 double GlottalFlow::gAmplitude() const { return m_flowAmplitude; }
+
+std::weak_ptr<GlottalFlowModel> GlottalFlow::genModel() { return m_modelForGen; }
+
+std::weak_ptr<const GlottalFlowModel> GlottalFlow::genModel() const {
+    return m_modelForGen;
+}
+
+void GlottalFlow::paramChanged(const std::string& name, const double value) {
+    m_model->updateParameterBounds(m_parameters);
+    m_model->fitParameters(m_parameters);
+    markDirty();
+}

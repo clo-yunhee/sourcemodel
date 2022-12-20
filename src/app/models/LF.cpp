@@ -5,12 +5,10 @@
 #include <boost/math/tools/roots.hpp>
 
 namespace math = boost::math;
-using math::constants::pi;
-using math::constants::pi_sqr;
-
+using namespace boost::math::double_constants;
 using namespace models;
 
-double LF::evaluate(double t) {
+double LF::evaluate(double t) const {
     static constexpr double T0 = 1;
 
     double dg;
@@ -20,8 +18,8 @@ double LF::evaluate(double t) {
     }
 
     if (t <= m_Te) {
-        dg = -m_Ee * std::exp(m_alpha * (t - m_Te)) *
-             std::sin((pi<double>() * t) / m_Tp) / std::sin((pi<double>() * m_Te) / m_Tp);
+        dg = -m_Ee * std::exp(m_alpha * (t - m_Te)) * std::sin((pi * t) / m_Tp) /
+             std::sin((pi * m_Te) / m_Tp);
     } else if (!std::isinf(m_epsilon)) {
         dg = -m_Ee / (m_epsilon * m_Ta) *
              (std::exp(-m_epsilon * (t - m_Te)) - std::exp(-m_epsilon * (T0 - m_Te)));
@@ -42,7 +40,7 @@ bool LF::fitParameters(const GlottalFlowParameters& params) {
     const double Qa = params.Qa.value();
 
     const double Te = Oq * T0;
-    const double Tp = (am > 0.5 ? am : 0.5) * Oq * T0;
+    const double Tp = (am > 0.5 ? am : 0.5 + 1e-6) * Oq * T0;
     const double Ta = Qa * (1 - Oq) * T0;
 
     double epsilon;
@@ -71,10 +69,10 @@ bool LF::fitParameters(const GlottalFlowParameters& params) {
     }
 
     // alpha is expressed by another implicit equation
-    const double wg = pi<double>() / Tp;
-    const double wg2 = pi_sqr<double>() / (Tp * Tp);
-    const double sinwgTe = std::sin((pi<double>() * Te) / Tp);
-    const double coswgTe = std::cos((pi<double>() * Te) / Tp);
+    const double wg = pi / Tp;
+    const double wg2 = pi_sqr / (Tp * Tp);
+    const double sinwgTe = std::sin((pi * Te) / Tp);
+    const double coswgTe = std::cos((pi * Te) / Tp);
     const double wgsinwgTe = wg / sinwgTe;
 
     double A;
@@ -137,9 +135,9 @@ void LF::updateParameterBounds(GlottalFlowParameters& params) {
     params.Oq.setMin(0.35);
     params.Oq.setMax(0.85);
 
-    params.am.setMin(0.5);
-    params.am.setMax(1.0 - 0.002);
+    params.am.setMin(0.55);
+    params.am.setMax(0.915);
 
     params.Qa.setMin(0);
-    params.Qa.setMax(0.5);
+    params.Qa.setMax(0.9);
 }

@@ -8,7 +8,7 @@ class RosenbergC : public GlottalFlowModel {
    public:
     ~RosenbergC() override {}
 
-    double evaluate(double t) override;
+    double evaluate(double t) const override;
 
     bool fitParameters(const GlottalFlowParameters& params) override;
     void updateParameterBounds(GlottalFlowParameters& params) override;
