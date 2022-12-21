@@ -1,7 +1,7 @@
 #include "SourceGenerator.h"
 
 #include "GlottalFlow.h"
-#include "math/filters/Butterworth.h"
+#include "math/filters/AAF.h"
 
 using nativeformat::param::createParam;
 
@@ -20,7 +20,12 @@ SourceGenerator::SourceGenerator(const AudioTime& time, GlottalFlow& glottalFlow
                                             this);
     m_gfmParameters.Qa.valueChanged.connect(&SourceGenerator::handleInternalParamChanged,
                                             this);
+    m_gfmParameters.usingRdChanged.connect(&SourceGenerator::handleUsingRdChanged, this);
+    m_gfmParameters.Rd.valueChanged.connect(&SourceGenerator::handleInternalParamChanged,
+                                            this);
 }
+
+double SourceGenerator::pitch() const { return m_targetF0; }
 
 void SourceGenerator::setPitch(const double f0) {
     if (m_f0) {
@@ -28,6 +33,7 @@ void SourceGenerator::setPitch(const double f0) {
     } else {
         m_f0 = createParam(f0, 1000.0, 16.0, "f0");
     }
+    m_targetF0 = f0;
 }
 
 void SourceGenerator::setSampleRate(const double fs) {
@@ -41,6 +47,16 @@ void SourceGenerator::handleModelChanged(const GlottalFlowModelType type) {
 }
 
 void SourceGenerator::handleParamChanged(const std::string& name, const double value) {
+    if (name == "Rd") {
+        if (m_Rd) {
+            m_Rd->linearRampToValueAtTime(value, time() + 0.1);
+        } else {
+            m_Rd = createParam(value, 6.00, 0.01, name);
+        }
+        m_internalParamChanged = true;
+        return;
+    }
+
     std::shared_ptr<nativeformat::param::Param>* param;
 
     if (name == "Oq") {
@@ -57,6 +73,11 @@ void SourceGenerator::handleParamChanged(const std::string& name, const double v
         *param = createParam(value, 1.0, 0.0, name);
     }
 
+    m_internalParamChanged = true;
+}
+
+void SourceGenerator::handleUsingRdChanged(const bool usingRd) {
+    m_gfmParameters.setUsingRd(usingRd);
     m_internalParamChanged = true;
 }
 
@@ -78,22 +99,23 @@ void SourceGenerator::fillInternalBuffer(std::vector<double>& out) {
         }
 
         // Evaluate.
-        out[i] = 0.25 * model->evaluate(m_gfmTime);
+        out[i] = 0.125 * model->evaluate(m_gfmTime);
 
         m_gfmTime += m_f0->valueForTime(t) / m_fs;
 
-        if (m_gfmTime > 1.0) {
+        if (m_gfmTime >= 1.0) {
             // Update parameters every period.
             if (m_Oq) m_gfmParameters.Oq.setValue(m_Oq->valueForTime(t));
             if (m_am) m_gfmParameters.am.setValue(m_am->valueForTime(t));
             if (m_Qa) m_gfmParameters.Qa.setValue(m_Qa->valueForTime(t));
+            if (m_Rd) m_gfmParameters.Rd.setValue(m_Rd->valueForTime(t));
             m_gfmTime = fmod(m_gfmTime, 1.0);
         }
     }
 
     // Async filter creation
     if (m_needsToRecreateFilters) {
-        m_antialiasFilter = butterworth::lowPass(8, m_fs / 2, m_fs);
+        m_antialiasFilter.loPass(m_fs, m_fs * 0.47, 5);
         m_needsToRecreateFilters = false;
     }
 
@@ -103,6 +125,7 @@ void SourceGenerator::fillInternalBuffer(std::vector<double>& out) {
     if (m_Oq) m_Oq->pruneEventsPriorToTime(time());
     if (m_am) m_am->pruneEventsPriorToTime(time());
     if (m_Qa) m_Qa->pruneEventsPriorToTime(time());
+    if (m_Rd) m_Rd->pruneEventsPriorToTime(time());
     if (m_f0) m_f0->pruneEventsPriorToTime(time());
 }
 

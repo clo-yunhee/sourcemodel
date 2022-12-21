@@ -9,7 +9,7 @@ class GlottalFlowModel {
 
     virtual double evaluate(double t) const = 0;
 
-    virtual bool fitParameters(const GlottalFlowParameters& params) = 0;
+    virtual void fitParameters(const GlottalFlowParameters& params) = 0;
     virtual void updateParameterBounds(GlottalFlowParameters& params) = 0;
 };
 

@@ -3,8 +3,11 @@ set(_target SourceModel)
 add_executable(${_target}
     audio/BufferedGenerator.cpp
     audio/BufferedGenerator.h
+    math/filters/AAF.h
     math/filters/Butterworth.cpp
     math/filters/Butterworth.h
+    math/filters/FIRFilter.cpp
+    math/filters/FIRFilter.h
     math/filters/SOSFilter.cpp
     math/filters/SOSFilter.h
     math/filters/SVFBiquad.cpp
@@ -156,11 +159,20 @@ else()
 endif()
 
 if(USE_ASAN)
-    target_compile_options(${_target} PRIVATE "-fsanitize=address")
-    target_link_options(${_target} PRIVATE "-fsanitize=address")
+    if(MSVC)
+        target_compile_definitions(${_target} PRIVATE
+            "_DISABLE_VECTOR_ANNOTATION"
+            "_DISABLE_STRING_ANNOTATION"
+        )
+        target_compile_options(${_target} PRIVATE "/fsanitize=address" "/fsanitize-address-use-after-return")
+        target_link_options(${_target} PRIVATE "/INCREMENTAL:NO")
+    else()
+        target_compile_options(${_target} PRIVATE "-fsanitize=address")
+        target_link_options(${_target} PRIVATE "-fsanitize=address")
+    endif()
 endif()
 
-if(USE_USAN)
+if(USE_USAN AND NOT MSVC)
     target_compile_options(${_target} PRIVATE "-fsanitize=undefined")
     target_link_options(${_target} PRIVATE "-fsanitize=undefined")
 endif()

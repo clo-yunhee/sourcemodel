@@ -19,9 +19,8 @@ double KLGLOTT88::evaluate(double t) const {
     return dg;
 }
 
-bool KLGLOTT88::fitParameters(const GlottalFlowParameters& params) {
+void KLGLOTT88::fitParameters(const GlottalFlowParameters& params) {
     m_Oq = params.Oq.value();
-    return true;
 }
 
 void KLGLOTT88::updateParameterBounds(GlottalFlowParameters& params) {

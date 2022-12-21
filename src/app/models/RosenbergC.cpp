@@ -24,15 +24,13 @@ double RosenbergC::evaluate(double t) const {
     return dg;
 }
 
-bool RosenbergC::fitParameters(const GlottalFlowParameters& params) {
+void RosenbergC::fitParameters(const GlottalFlowParameters& params) {
     const double Oq = params.Oq.value();
     const double am = params.am.value();
 
     m_Tp = am * Oq;
     m_Tn = Oq - m_Tp;
     m_A = two_div_pi * m_Tn;
-
-    return true;
 }
 
 void RosenbergC::updateParameterBounds(GlottalFlowParameters& params) {

@@ -10,10 +10,15 @@ class LF : public GlottalFlowModel {
 
     double evaluate(double t) const override;
 
-    bool fitParameters(const GlottalFlowParameters& params) override;
+    void fitParameters(const GlottalFlowParameters& params) override;
     void updateParameterBounds(GlottalFlowParameters& params) override;
 
+    // Specific to LF model, get Te directly, used for when Rd is used.
+    double Te() const;
+
    private:
+    void fitParameters(double Ee, double T0, double Te, double Tp, double Ta);
+
     double m_Ee;  // calculated for E0 = 1
     double m_Te;  // = Oq * T0
     double m_Tp;  // = am * Oq * T0

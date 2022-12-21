@@ -53,6 +53,7 @@ class GlottalFlow {
     }
 
     void paramChanged(const std::string& name, double value);
+    void usingRdChanged(bool usingRd);
 
     GlottalFlowParameters m_parameters;
 

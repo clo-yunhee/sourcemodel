@@ -21,7 +21,7 @@ SourceModelApp::SourceModelApp(const int initialWidth, const int initialHeight)
       m_sourceSpectrum(&m_sourceGenerator),
       m_formantGenerator(m_audioOutput, m_intermediateAudioBuffer),
       m_formantSpectrum(&m_formantGenerator),
-      m_pitch(200),
+      m_showAdvancedSourceParams(false),
       m_doBypassFilter(false),
       m_doNormalizeFlowPlot(true) {
     ImPlot::CreateContext();
@@ -29,24 +29,28 @@ SourceModelApp::SourceModelApp(const int initialWidth, const int initialHeight)
     m_audioOutput.setBufferCallback([this](std::vector<double>& out) {
         m_intermediateAudioBuffer.resize(out.size());
         m_sourceGenerator.fillBuffer(m_intermediateAudioBuffer);
+        // Compensate for amplitude differences
         if (m_doBypassFilter) {
             std::copy(m_intermediateAudioBuffer.begin(), m_intermediateAudioBuffer.end(),
                       out.begin());
             m_formantGenerator.fillBuffer(m_intermediateAudioBuffer);
+            for (double& x : out) {
+                x *= 2;
+            }
         } else {
             m_formantGenerator.fillBuffer(out);
         }
         return true;
     });
 
-    m_glottalFlow.setSampleCount(4096);
+    m_glottalFlow.setSampleCount(1024);
     m_glottalFlow.setModelType(GlottalFlowModel_LF);  // Default model to LF.
 
-    m_sourceSpectrum.setSmoothing(0.3);
-    m_sourceSpectrum.setTransformSize(8192);
+    m_sourceSpectrum.setSmoothing(0.2);
+    m_sourceSpectrum.setTransformSize(6144);
 
-    m_formantSpectrum.setSmoothing(0.3);
-    m_formantSpectrum.setTransformSize(8192);
+    m_formantSpectrum.setSmoothing(0.2);
+    m_formantSpectrum.setTransformSize(6144);
 
 #ifdef USING_RTAUDIO
     setAudioOutputDevice(m_audioDevices.defaultOutputDevice());
@@ -57,6 +61,10 @@ SourceModelApp::SourceModelApp(const int initialWidth, const int initialHeight)
     m_glottalFlow.parameters().am.valueChanged.connect(
         &SourceGenerator::handleParamChanged, &m_sourceGenerator);
     m_glottalFlow.parameters().Qa.valueChanged.connect(
+        &SourceGenerator::handleParamChanged, &m_sourceGenerator);
+    m_glottalFlow.parameters().usingRdChanged.connect(
+        &SourceGenerator::handleUsingRdChanged, &m_sourceGenerator);
+    m_glottalFlow.parameters().Rd.valueChanged.connect(
         &SourceGenerator::handleParamChanged, &m_sourceGenerator);
 
     m_glottalFlow.modelTypeChanged.connect(&SourceGenerator::handleModelChanged,
@@ -145,7 +153,7 @@ void SourceModelApp::renderMain() {
 
     ImGui::BeginGroupPanel("Glottal flow model", ImVec2(-1, 0));
 
-    const double itemX =
+    const float itemX =
         ImGui::CalcTextSize("Oq \u2208 [0.000, 0.000]").x + style.ItemSpacing.x;
 
     ImGui::NewLine();
@@ -154,19 +162,45 @@ void SourceModelApp::renderMain() {
     ImGui::TextUnformatted("E\u2080 = 1 ; T\u2080 = 1");
     ImGui::Spacing();
 
-    ImGui::AlignTextToFramePadding();
-    ImGui::TextUnformatted("Model type");
-    ImGui::SameLine(itemX);
-    int type = (int)m_glottalFlow.modelType();
-    ImGui::SetNextItemWidth(15 * em());
-    if (ImGui::Combo("##gfm_type", &type, GlottalFlowModel_NAMES)) {
-        m_glottalFlow.setModelType((GlottalFlowModelType)type);
+    if (ImGui::Checkbox("Show advanced params", &m_showAdvancedSourceParams)) {
+        m_glottalFlow.parameters().setUsingRd(!m_showAdvancedSourceParams);
     }
 
-    renderSourceParameterControl(m_glottalFlow.parameters().Oq, "Oq", "Oq", itemX);
-    renderSourceParameterControl(m_glottalFlow.parameters().am, "am", "\u03B1\u2098",
-                                 itemX);
-    renderSourceParameterControl(m_glottalFlow.parameters().Qa, "Qa", "Q\u2090", itemX);
+    if (m_showAdvancedSourceParams) {
+        ImGui::AlignTextToFramePadding();
+        ImGui::TextUnformatted("Model type");
+        ImGui::SameLine(itemX);
+        int type = (int)m_glottalFlow.modelType();
+        ImGui::SetNextItemWidth(15 * em());
+        if (ImGui::Combo("##gfm_type", &type, GlottalFlowModel_NAMES)) {
+            m_glottalFlow.setModelType((GlottalFlowModelType)type);
+        }
+
+        renderSourceParameterControl(m_glottalFlow.parameters().Oq, "Oq", "Oq", itemX);
+        renderSourceParameterControl(m_glottalFlow.parameters().am, "am", "\u03B1\u2098",
+                                     itemX);
+        renderSourceParameterControl(m_glottalFlow.parameters().Qa, "Qa", "Q\u2090",
+                                     itemX);
+    } else {
+        ImGui::AlignTextToFramePadding();
+        ImGui::NewLine();
+        ImGui::SameLine(itemX);
+        ImGui::TextUnformatted("LF model with Rd waveshape parameter.");
+
+        double Rd = m_glottalFlow.parameters().Rd.value();
+
+        // By 0.01 if < 0.1 else 0.1
+        const int precision = Rd <= 0.1 ? -2 : -1;
+
+        if (ScrollableDrag("Rd \u2208 [0.01, 6.00]", itemX, "##param_Rd", 15 * em(), &Rd,
+                           0.01, 6.0, "%.2f", false, precision)) {
+            m_glottalFlow.parameters().Rd.setValue(Rd);
+        }
+
+        ImGui::TextWrapped(
+            "Low, mid or high values of Rd correspond to tense/pressed, modal/normal or "
+            "relaxed/breathy voice qualities respectively.");
+    }
 
     ImGui::EndGroupPanel();  // Glottal source modelling
 
@@ -246,8 +280,13 @@ void SourceModelApp::renderMain() {
 
         ImPlot::PushStyleVar(ImPlotStyleVar_LineWeight, 1.75f * contentScale());
 
-        ImPlot::PlotLineG("g(t)", plotGetterLTTB, g.Data, g.size());
-        ImPlot::PlotLineG("dg(t)", plotGetterLTTB, dg.Data, dg.size());
+        // ImPlot::PlotLineG("g(t)", plotGetterLTTB, g.Data, g.size());
+        // ImPlot::PlotLineG("dg(t)", plotGetterLTTB, dg.Data, dg.size());
+
+        ImPlot::PlotLine("g(t)", m_glottalFlow.t(), m_glottalFlow.g(),
+                         m_glottalFlow.sampleCount());
+        ImPlot::PlotLine("dg(t)", m_glottalFlow.t(), m_glottalFlow.dg(),
+                         m_glottalFlow.sampleCount());
 
         ImPlot::PopStyleVar(ImPlotStyleVar_LineWeight);
 
@@ -266,16 +305,17 @@ void SourceModelApp::renderMain() {
 
     ImGui::BeginGroupPanel("Synthesizer", ImVec2(-1, 0));
 
-    const char* f0Label = "f\u2080";
-    const int   f0LabelW = ImGui::CalcTextSize(f0Label).x + style.ItemSpacing.x;
-    if (ScrollableDrag(f0Label, f0LabelW, "##param_f0", 15 * em(), &m_pitch, 16.0, 1000.0,
+    constexpr const char* f0Label = "f\u2080";
+    const float           f0LabelW = ImGui::CalcTextSize(f0Label).x + style.ItemSpacing.x;
+    double                pitch = m_sourceGenerator.pitch();
+    if (ScrollableDrag(f0Label, f0LabelW, "##param_f0", 15 * em(), &pitch, 16.0, 1000.0,
                        "%g Hz")) {
-        m_sourceGenerator.setPitch(m_pitch);
+        m_sourceGenerator.setPitch(pitch);
     }
 
-    const int fLabelW = ImGui::CalcTextSize("f\u2081").x + style.ItemSpacing.x;
-    const int bLabelW = ImGui::CalcTextSize("b\u2081").x + style.ItemSpacing.x;
-    const int gLabelW = ImGui::CalcTextSize("G\u2081").x + style.ItemSpacing.x;
+    const float fLabelW = ImGui::CalcTextSize("f\u2081").x + style.ItemSpacing.x;
+    const float bLabelW = ImGui::CalcTextSize("b\u2081").x + style.ItemSpacing.x;
+    const float gLabelW = ImGui::CalcTextSize("G\u2081").x + style.ItemSpacing.x;
 
     ImGui::SameLine(f0LabelW + 15 * em() + bLabelW + style.ItemSpacing.x);
 
@@ -356,8 +396,8 @@ void SourceModelApp::renderSourceParameterControl(GlottalFlowParameter& param,
 void SourceModelApp::renderFormantParameterControl(const int k, const float fLabelW,
                                                    const float bLabelW,
                                                    const float gLabelW) {
-    static constexpr const char* subscriptK[5] = {"\u2081", "\u2082", "\u2083", "\u2084",
-                                                  "\u2085"};
+    constexpr const char* subscriptK[5] = {"\u2081", "\u2082", "\u2083", "\u2084",
+                                           "\u2085"};
 
     static constexpr int bufferLength = 32;
     static char          fieldLabel[bufferLength];
@@ -398,9 +438,11 @@ void SourceModelApp::renderFormantParameterControl(const int k, const float fLab
 bool SourceModelApp::ScrollableDrag(const char* fieldLabel, const float labelW,
                                     const char* fieldId, const float fieldW,
                                     double* value, double min, double max,
-                                    const char* format, bool autoScale) {
-    const int precision =
-        autoScale ? std::clamp((int)std::floor(log10(fabs(*value))), -3, 5) : 1;
+                                    const char* format, const bool autoScale,
+                                    const int manualPrecision) {
+    const int precision = autoScale
+                            ? std::clamp((int)std::floor(log10(fabs(*value))), -3, 5)
+                            : manualPrecision;
 
     ImGui::BeginGroup();
     ImGui::AlignTextToFramePadding();
@@ -420,6 +462,60 @@ bool SourceModelApp::ScrollableDrag(const char* fieldLabel, const float labelW,
         return true;
     }
     return false;
+}
+
+void SourceModelApp::updateDownscaledPlot(const int count, const int start,
+                                          const int end) {
+    const int     N = m_glottalFlow.sampleCount();
+    const double* t = m_glottalFlow.t();
+
+    const double* g = m_glottalFlow.g();
+    const auto&   gMin = m_glottalFlow.gMin();
+    const auto&   gMax = m_glottalFlow.gMax();
+    const double  gAmp = m_glottalFlow.gAmplitude();
+
+    const double* dg = m_glottalFlow.dg();
+    const auto&   dgMin = m_glottalFlow.dgMin();
+    const auto&   dgMax = m_glottalFlow.dgMax();
+    const double  dgAmp = m_glottalFlow.dgAmplitude();
+
+    m_downsampledCount = count;
+    m_downsampledStart = start;
+    m_downsampledEnd = end;
+
+    m_gDownsampled = downsampleLTTB(t, g, N, count, start, end);
+    m_dgDownsampled = downsampleLTTB(t, dg, N, count, start, end);
+
+    const double gScale = (m_doNormalizeFlowPlot ? 1.0 / gAmp : 1);
+    const double dgScale = (m_doNormalizeFlowPlot ? 1.0 / dgAmp : 1);
+
+    bool gMinInserted = false;
+    bool gMaxInserted = false;
+    for (auto it = m_gDownsampled.begin();
+         it != m_gDownsampled.end() && !gMinInserted && !gMaxInserted; ++it) {
+        if (!gMinInserted && it->x > gMin.first) {
+            it = m_gDownsampled.insert(it, {gMin.first, gMin.second});
+            gMinInserted = true;
+        }
+        if (!gMaxInserted && it->x > gMax.first) {
+            it = m_gDownsampled.insert(it, {gMax.first, gMax.second});
+            gMaxInserted = true;
+        }
+    }
+
+    bool dgMinInserted = false;
+    bool dgMaxInserted = false;
+    for (auto it = m_dgDownsampled.begin();
+         it != m_dgDownsampled.end() && !dgMinInserted && !dgMaxInserted; ++it) {
+        if (!dgMinInserted && it->x > dgMin.first) {
+            it = m_dgDownsampled.insert(it, {dgMin.first, dgMin.second});
+            dgMinInserted = true;
+        }
+        if (!dgMaxInserted && it->x > dgMax.first) {
+            it = m_dgDownsampled.insert(it, {dgMax.first, dgMax.second});
+            dgMaxInserted = true;
+        }
+    }
 }
 
 void SourceModelApp::showMessages(const std::string& newLine) {

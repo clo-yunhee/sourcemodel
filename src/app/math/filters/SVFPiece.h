@@ -24,15 +24,6 @@ class SVFPiece {
    private:
     FltType _type;
 
-    double _b0;
-    double _b1;
-    double _b2;
-    double _a1;
-    double _a2;
-
-    double _v0;
-    double _v1;
-
     double _g;
     double _R;
     double _z1;

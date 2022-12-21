@@ -15,7 +15,7 @@ class SOSFilter {
 
     std::vector<double> filter(const std::vector<double>& x);
 
-   private:
+   protected:
     std::vector<std::array<double, 6>> m_sos;
     std::vector<std::array<double, 2>> m_zi;
 };

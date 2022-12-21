@@ -15,11 +15,17 @@ if(MSVC)
     set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    add_definitions(-D_WIN32_WINNT=0x0601)
+endif()
+
 option(USE_ASAN "Build with AddressSanitizer (ASan) if supported" OFF)
 option(USE_USAN "Build with UndefinedBehaviorSanitizer (UBSan) if supported" OFF)
 
-if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    add_definitions(-D_WIN32_WINNT=0x0601)
+if(MSVC AND USE_ASAN)
+    # Remove the /RTC flags forcefully because CMake defaults them on MSVC
+    set(CMAKE_C_FLAGS_DEBUG " /Zi /Ob0 /Od" CACHE INTERNAL "" FORCE)
+    set(CMAKE_CXX_FLAGS_DEBUG " /Zi /Ob0 /Od" CACHE INTERNAL "" FORCE)
 endif()
 
 add_subdirectory(vendor)

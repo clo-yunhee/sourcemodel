@@ -1,6 +1,7 @@
 #include "GlottalFlow.h"
 
 #include <boost/math/quadrature/gauss_kronrod.hpp>
+#include <boost/math/quadrature/trapezoidal.hpp>
 #include <cmath>
 
 #include "models/KLGLOTT88.h"
@@ -18,6 +19,8 @@ GlottalFlow::GlottalFlow()
     m_parameters.Oq.valueChanged.connect(&GlottalFlow::paramChanged, this);
     m_parameters.am.valueChanged.connect(&GlottalFlow::paramChanged, this);
     m_parameters.Qa.valueChanged.connect(&GlottalFlow::paramChanged, this);
+    m_parameters.usingRdChanged.connect(&GlottalFlow::usingRdChanged, this);
+    m_parameters.Rd.valueChanged.connect(&GlottalFlow::paramChanged, this);
 }
 
 GlottalFlowParameters& GlottalFlow::parameters() { return m_parameters; }
@@ -57,13 +60,25 @@ void GlottalFlow::updateSamples() {
     m_flowMin.second = 0;
     m_flowMax.second = 0;
 
+    double Te;
+    if (m_modelType == GlottalFlowModel_LF && m_parameters.usingRd()) {
+        Te = ((const models::LF*)m_model.get())->Te();
+    } else {
+        Te = m_parameters.Oq.value();
+    }
+
     for (int i = 0; i < m_sampleCount; ++i) {
         m_times[i] = i / double(m_sampleCount);
 
+        // Make sure to include Te to include the real peak in the plot.
+        if (i < m_sampleCount - 1 && m_times[i] < Te && Te < m_times[i + 1]) {
+            m_times[i] = Te;
+        }
+
         m_flowDerivative[i] = m_model->evaluate(m_times[i]);
 
-        m_flow[i] = gauss_kronrod<double, 15>::integrate(
-            [this](double t) { return m_model->evaluate(t); }, 0, m_times[i], 14, 1e-5);
+        m_flow[i] = gauss_kronrod<double, 31>::integrate(
+            [this](double t) { return m_model->evaluate(t); }, 0, m_times[i], 15, 1e-6);
 
         if (m_flowDerivative[i] < m_flowDerivativeMin.second) {
             m_flowDerivativeMin.second = m_flowDerivative[i];
@@ -129,6 +144,12 @@ std::weak_ptr<const GlottalFlowModel> GlottalFlow::genModel() const {
 }
 
 void GlottalFlow::paramChanged(const std::string& name, const double value) {
+    m_model->updateParameterBounds(m_parameters);
+    m_model->fitParameters(m_parameters);
+    markDirty();
+}
+
+void GlottalFlow::usingRdChanged(bool usingRd) {
     m_model->updateParameterBounds(m_parameters);
     m_model->fitParameters(m_parameters);
     markDirty();

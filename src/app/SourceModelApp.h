@@ -20,6 +20,8 @@
     #include "audio/webaudio/AudioOutput.h"
 #endif
 
+#include <implot.h>
+
 class SourceModelApp : public Application {
    public:
     SourceModelApp(int initialWidth = 800, int initialHeight = 600);
@@ -42,7 +44,10 @@ class SourceModelApp : public Application {
 
     bool ScrollableDrag(const char* fieldLabel, float labelW, const char* fieldId,
                         float fieldW, double* value, double min, double max,
-                        const char* format, bool autoScale = true);
+                        const char* format, bool autoScale = true,
+                        int manualPrecision = 1);
+
+    void updateDownscaledPlot(int count, int start, int end);
 
 #ifdef USING_RTAUDIO
     void setAudioOutputDevice(const RtAudio::DeviceInfo& deviceInfo);
@@ -69,17 +74,21 @@ class SourceModelApp : public Application {
     bool                     m_doOpenPopupNextFrame;
     std::vector<std::string> m_messages;
 
-    GlottalFlow       m_glottalFlow;
-    SourceGenerator   m_sourceGenerator;
-    GeneratorSpectrum m_sourceSpectrum;
-    FormantGenerator  m_formantGenerator;
-    GeneratorSpectrum m_formantSpectrum;
-
-    double m_pitch;
-
-    bool                m_doBypassFilter;
+    GlottalFlow         m_glottalFlow;
+    SourceGenerator     m_sourceGenerator;
+    GeneratorSpectrum   m_sourceSpectrum;
+    FormantGenerator    m_formantGenerator;
+    GeneratorSpectrum   m_formantSpectrum;
     std::vector<double> m_intermediateAudioBuffer;
 
+    int                   m_downsampledCount;
+    int                   m_downsampledStart;
+    int                   m_downsampledEnd;
+    ImVector<ImPlotPoint> m_gDownsampled;
+    ImVector<ImPlotPoint> m_dgDownsampled;
+
+    bool m_showAdvancedSourceParams;
+    bool m_doBypassFilter;
     bool m_doNormalizeFlowPlot;
 };
 

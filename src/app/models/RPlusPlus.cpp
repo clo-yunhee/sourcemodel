@@ -24,7 +24,7 @@ double RPlusPlus::evaluate(double t) const {
     return dg;
 }
 
-bool RPlusPlus::fitParameters(const GlottalFlowParameters& params) {
+void RPlusPlus::fitParameters(const GlottalFlowParameters& params) {
     static constexpr double E = 1;
     static constexpr double T0 = 1;
 
@@ -52,8 +52,6 @@ bool RPlusPlus::fitParameters(const GlottalFlowParameters& params) {
     m_Tx = Tx;
 
     m_dgTe = 4 * m_K * m_Te * (m_Tp - m_Te) * (m_Tx - m_Te);
-
-    return true;
 }
 
 void RPlusPlus::updateParameterBounds(GlottalFlowParameters& params) {

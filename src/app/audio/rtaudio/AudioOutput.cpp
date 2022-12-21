@@ -74,7 +74,7 @@ void AudioOutput::openStream() {
     RtAudio::StreamOptions options{};
     options.flags = RTAUDIO_NONINTERLEAVED;
 
-    unsigned int bufferFrames{256};
+    unsigned int bufferFrames{1024};
     m_audio.openStream(&parameters, nullptr, RTAUDIO_FLOAT64,
                        m_device.preferredSampleRate, &bufferFrames, &streamCallback, this,
                        &options);

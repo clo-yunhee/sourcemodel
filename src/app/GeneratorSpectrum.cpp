@@ -23,8 +23,16 @@ void GeneratorSpectrum::setTransformSize(const int nfft) {
         m_window.resize(m_nfft);
         m_values.resize(m_nfft);
         for (int i = 0; i < m_nfft; ++i) {
-            // Hann
-            m_window[i] = 0.5 * (1 - cos((two_pi * i) / (m_nfft - 1)));
+            const double x = double(i) / double(m_nfft - 1);
+
+            // Flat top window
+            constexpr double a0 = 0.21557895;
+            constexpr double a1 = 0.41663158;
+            constexpr double a2 = 0.277263158;
+            constexpr double a3 = 0.083578947;
+            constexpr double a4 = 0.006947368;
+            m_window[i] = a0 - a1 * cos(two_pi * x) + a2 * cos(2 * two_pi * x) -
+                          a3 * cos(3 * two_pi * x) + a4 * cos(4 * two_pi * x);
         }
         // Reconstruct frequency array.
         m_freqs.resize(m_dtft.binCount());
@@ -33,7 +41,7 @@ void GeneratorSpectrum::setTransformSize(const int nfft) {
         for (int i = 0; i < m_dtft.binCount(); ++i) {
             m_freqs[i] = (i * m_fs) / m_nfft;
             m_mags[i] = 0;
-            m_spls[i] = std::numeric_limits<double>::lowest();
+            m_spls[i] = -std::numeric_limits<double>::infinity();
         }
     }
 }
@@ -47,7 +55,7 @@ void GeneratorSpectrum::setSampleRate(const double fs) {
         for (int i = 0; i < m_dtft.binCount(); ++i) {
             m_freqs[i] = (i * m_fs) / m_nfft;
             m_mags[i] = 0;
-            m_spls[i] = std::numeric_limits<double>::lowest();
+            m_spls[i] = -std::numeric_limits<double>::infinity();
         }
     }
 }
@@ -67,14 +75,16 @@ void GeneratorSpectrum::update() {
     m_dtft.updateSamples(m_values.data(), m_nfft);
 
     for (int i = 0; i < m_dtft.binCount(); ++i) {
-        if (m_mags[i] > 0) {
-            m_mags[i] += m_alpha * (m_dtft.magnitude()[i] - m_mags[i]);
-        } else {
-            m_mags[i] = m_dtft.magnitude()[i];
-        }
+        m_mags[i] = m_dtft.magnitude()[i];
 
         // Calculate SPL.
-        m_spls[i] = 10 * log10(m_mags[i] / 1.0);
+        const double newSpl = 10 * log10(m_mags[i]);
+
+        if (std::isinf(m_spls[i])) {
+            m_spls[i] = newSpl;
+        } else {
+            m_spls[i] = m_alpha * newSpl + (1 - m_alpha) * m_spls[i];
+        }
     }
 }
 

@@ -12,7 +12,10 @@
             "args": [],
             "cwd": "${workspaceFolder}",
             "stopAtEntry": false,
-            "environment": [],
+            "environment": [
+                {"name": "ASAN_OPTIONS", "value":"detect_stack_use_after_return=1"},
+                {"name": "ASAN_WIN_CONTINUE_ON_INTERCEPTION_FAILURE", "value": "1"},
+            ],
             "console": "internalConsole"
         }
     ]

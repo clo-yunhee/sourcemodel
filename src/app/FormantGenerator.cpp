@@ -72,15 +72,18 @@ void FormantGenerator::fillInternalBuffer(std::vector<double>& out) {
     for (int i = 0; i < out.size(); ++i) {
         const double t = time(i);
 
-        double y = 0;
+        double y = m_input[i];
 
         for (int k = 0; k < kNumFormants; ++k) {
             if (m_F[k]) m_filters[k].setFrequency(m_F[k]->valueForTime(t));
             if (m_B[k]) m_filters[k].setBandwidth(m_B[k]->valueForTime(t));
             if (m_G[k]) m_filters[k].setGain(m_G[k]->valueForTime(t));
 
+            // TO BE IMPROVED. Trying to model the acoustic coupling that happens during
+            // the open phase.
+
             // If input[i] > 0, we're roughly in the open phase, shift formant frequency.
-            if (m_input[i] > 0) {
+            /*if (m_input[i] > 0) {
                 m_filters[k].setFrequencyMultiplier(1 + 0.01 * m_input[i]);
                 m_filters[k].setQualityMultiplier(1 - 0.1 * m_input[i]);
                 m_filters[k].setGainOffset(-6 * m_input[i]);
@@ -88,10 +91,10 @@ void FormantGenerator::fillInternalBuffer(std::vector<double>& out) {
                 m_filters[k].setFrequencyMultiplier(1);
                 m_filters[k].setQualityMultiplier(1);
                 m_filters[k].setGainOffset(1 * -m_input[i]);
-            }
+            }*/
 
             m_filters[k].update();
-            y += m_filters[k].tick(m_input[i]);
+            y = m_filters[k].tick(y / pow((double)kNumFormants, 1.65));
         }
 
         out[i] = y;

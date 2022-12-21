@@ -139,6 +139,8 @@
         "source_location": "cpp",
         "strstream": "cpp",
         "shared_mutex": "cpp",
-        "cfloat": "cpp"
+        "cfloat": "cpp",
+        "ranges": "cpp",
+        "span": "cpp"
     }
 }

@@ -62,6 +62,7 @@ double OneFormantFilter::gainOffset() const { return m_gainOff; }
 void OneFormantFilter::setGainOffset(const double gainOff) { m_gainOff = gainOff; }
 
 void OneFormantFilter::update() {
+    /*
     const double linGain = std::pow(10.0, 0.05 * (m_gain + m_gainOff));
     const double wc = (m_fc * m_fcMult) * two_pi;
     const double a1 = 1.0 / (m_q * m_qMult);
@@ -80,6 +81,21 @@ void OneFormantFilter::update() {
     const double _a2 = (1 - a1 * c + csq) / d;
 
     m_biquad.update(_b0, _b1, _b2, _a1, _a2);
+    */
+
+    const double r = exp(-pi * m_bw / m_fs);
+
+    const double cosTheta = cos_pi(2 * m_fc / m_fs);
+    const double sinTheta = sin_pi(2 * m_fc / m_fs);
+
+    const double b0 = 1;
+    const double b1 = 0;
+    const double b2 = 0;
+
+    const double a1 = -2 * r * cosTheta;
+    const double a2 = r * r;
+
+    m_biquad.update(b0, b1, b2, a1, a2);
 }
 
 double OneFormantFilter::tick(const double x) { return m_biquad.tick(x); }
