@@ -9,8 +9,7 @@ SourceGenerator::SourceGenerator(const AudioTime& time, GlottalFlow& glottalFlow
     : BufferedGenerator(time),
       m_glottalFlow(glottalFlow),
       m_gfmTime(0),
-      m_internalParamChanged(true),
-      m_needsToRecreateFilters(true) {
+      m_internalParamChanged(true) {
     setPitch(200);
     setSampleRate(48000);
 
@@ -34,12 +33,6 @@ void SourceGenerator::setPitch(const double f0) {
         m_f0 = createParam(f0, 1000.0, 16.0, "f0");
     }
     m_targetF0 = f0;
-}
-
-void SourceGenerator::setSampleRate(const double fs) {
-    m_fs = fs;
-    // Async filter creation
-    m_needsToRecreateFilters = true;
 }
 
 void SourceGenerator::handleModelChanged(const GlottalFlowModelType type) {
@@ -99,9 +92,9 @@ void SourceGenerator::fillInternalBuffer(std::vector<double>& out) {
         }
 
         // Evaluate.
-        out[i] = 0.125 * model->evaluate(m_gfmTime);
+        out[i] = model->evaluate(m_gfmTime);
 
-        m_gfmTime += m_f0->valueForTime(t) / m_fs;
+        m_gfmTime += m_f0->valueForTime(t) / fs();
 
         if (m_gfmTime >= 1.0) {
             // Update parameters every period.
@@ -114,9 +107,9 @@ void SourceGenerator::fillInternalBuffer(std::vector<double>& out) {
     }
 
     // Async filter creation
-    if (m_needsToRecreateFilters) {
-        m_antialiasFilter.loPass(m_fs, m_fs * 0.47, 5);
-        m_needsToRecreateFilters = false;
+    if (hasSampleRateChanged()) {
+        m_antialiasFilter.loPass(fs(), fs() * 0.47, 5);
+        ackSampleRateChange();
     }
 
     out = m_antialiasFilter.filter(out);

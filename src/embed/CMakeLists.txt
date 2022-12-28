@@ -22,7 +22,7 @@ else()
     add_executable(embed_cli main.cpp)
     target_include_directories(embed_cli PUBLIC embed)
 
-    set_property(TARGET embed_cli PROPERTY CXX_STANDARD 17)
+    set_property(TARGET embed_cli PROPERTY CXX_STANDARD 20)
     set_property(TARGET embed_cli PROPERTY CXX_STANDARD_REQUIRED TRUE)
 
     if(CMAKE_SYSTEM_NAME STREQUAL "Windows")

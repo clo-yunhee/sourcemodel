@@ -3,6 +3,7 @@
 #include <locale>
 
 #include "argparse.hpp"
+#include "include/embed.hpp"
 
 namespace line {
 
@@ -20,10 +21,12 @@ static constexpr auto size1 = "inline constexpr std::size_t ";
 static constexpr auto size2 = " = ";
 static constexpr auto size3 = "_uz;";
 
-static constexpr auto arrayBegin1 = "inline constexpr std::array<uint32_t, ";
+static constexpr auto arrayBegin1 = "inline constexpr std::array<std::uint32_t, ";
 static constexpr auto arrayBegin2 = "> ";
 static constexpr auto arrayBegin3 = " = {";
 static constexpr auto arrayEnd = "};";
+
+static constexpr auto strBegin = "inline constexpr const char ";
 
 static constexpr auto definition1 = "inline constexpr auto ";
 static constexpr auto definition2 = " = detail::makeEmbedded<\n";
@@ -159,6 +162,7 @@ int main(int argc, char* argv[]) {
     const std::string byteCountVariableName = variableName + "__byteCount";
     const std::string u32CountVariableName = variableName + "__u32Count";
     const std::string u32ArrVariableName = variableName + "__u32Arr";
+    const std::string dataVariableName = variableName + "__data";
 
     // Output the first few lines.
     outfile << line::pragmaOnce << "\n\n"
@@ -166,27 +170,34 @@ int main(int argc, char* argv[]) {
             << line::namespaceEmbedBegin << "\n"
             << line::namespaceDataBegin << "\n"
             << line::size1 << byteCountVariableName << line::size2 << fileSize
-            << line::size3 << '\n'
-            << line::size1 << u32CountVariableName << line::size2 << fileSizeU32
+            << line::size3 << '\n';
+
+#if EMBED_ARRAY
+    outfile << line::size1 << u32CountVariableName << line::size2 << fileSizeU32
             << line::size3 << '\n'
             << line::arrayBegin1 << u32CountVariableName << line::arrayBegin2
             << u32ArrVariableName << line::arrayBegin3 << '\n';
+#else
+    outfile << line::strBegin << dataVariableName << "[" << byteCountVariableName
+            << " + 1] = \n";
+#endif
 
     try {
         // Read (and write) the input (output) file in chunks.
-        constexpr size_t                chunkSize = 4096;
-        std::array<uint32_t, chunkSize> bytes;
+        constexpr std::size_t                chunkSize = 4096;
+        std::array<std::uint32_t, chunkSize> bytes;
 
-        uint8_t lineCount = 0;
+        std::uint8_t lineCount = 0;
 
         outfile << std::hex << std::setfill('0');
 
         while (!std::feof(infile)) {
             const std::size_t bytesRead =
-                std::fread(bytes.data(), sizeof(uint32_t), chunkSize, infile);
+                std::fread(bytes.data(), sizeof(std::uint32_t), chunkSize, infile);
 
             if (bytesRead > 0) {
                 for (std::size_t i = 0; i < bytesRead; ++i) {
+#if EMBED_ARRAY
                     if (lineCount == 0) {
                         outfile << "  ";
                     }
@@ -196,6 +207,21 @@ int main(int argc, char* argv[]) {
                         outfile << '\n';
                         lineCount = 0;
                     }
+#else
+                    if (lineCount == 0) {
+                        outfile << "  \"";
+                    }
+                    // Write each byte separately as a \xFF literal.
+                    for (int j = 0; j < 4; ++j) {
+                        outfile << "\\x" << std::setw(2)
+                                << (0xFF & (bytes[i] >> (8 * j)));
+                    }
+                    ++lineCount;
+                    if (lineCount == 8) {
+                        outfile << "\"\n";
+                        lineCount = 0;
+                    }
+#endif
                 }
             } else if (std::ferror(infile) != 0) {
                 std::perror("Error reading/writing the bytes.");
@@ -203,6 +229,11 @@ int main(int argc, char* argv[]) {
                 std::exit(EXIT_FAILURE);
             }
         }
+#if !EMBED_ARRAY
+        if (lineCount != 0) {
+            outfile << '"';
+        }
+#endif
     } catch (const std::ios_base::failure& err) {
         std::cerr << "Error reading/writing the bytes." << std::endl;
         std::cerr << err.what() << std::endl;
@@ -210,15 +241,22 @@ int main(int argc, char* argv[]) {
         std::exit(EXIT_FAILURE);
     }
 
-    // Output the last few lines.
+// Output the last few lines.
+#if EMBED_ARRAY
     outfile << '\n'
             << line::arrayEnd << '\n'
             << line::namespaceDataEnd << "\n\n"
             << line::definition1 << variableName << line::definition2 << "  "
             << line::dataPrefix << byteCountVariableName << ", " << line::dataPrefix
-            << u32CountVariableName << ", " << line::dataPrefix << u32ArrVariableName
-            << line::definition3 << "\n\n"
-            << line::namespaceEmbedEnd;
+            << u32CountVariableName << ", " << line::dataPrefix << u32ArrVariableName;
+#else
+    outfile << ";\n"
+            << line::namespaceDataEnd << "\n\n"
+            << line::definition1 << variableName << line::definition2 << " "
+            << line::dataPrefix << byteCountVariableName << ", " << line::dataPrefix
+            << dataVariableName;
+#endif
+    outfile << line::definition3 << "\n\n" << line::namespaceEmbedEnd;
 
     outfile << std::endl;
 

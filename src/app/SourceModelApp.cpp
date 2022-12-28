@@ -34,9 +34,6 @@ SourceModelApp::SourceModelApp(const int initialWidth, const int initialHeight)
             std::copy(m_intermediateAudioBuffer.begin(), m_intermediateAudioBuffer.end(),
                       out.begin());
             m_formantGenerator.fillBuffer(m_intermediateAudioBuffer);
-            for (double& x : out) {
-                x *= 2;
-            }
         } else {
             m_formantGenerator.fillBuffer(out);
         }
@@ -51,6 +48,9 @@ SourceModelApp::SourceModelApp(const int initialWidth, const int initialHeight)
 
     m_formantSpectrum.setSmoothing(0.2);
     m_formantSpectrum.setTransformSize(6144);
+
+    m_sourceGenerator.setNormalized(false);
+    m_formantGenerator.setNormalized(true);
 
 #ifdef USING_RTAUDIO
     setAudioOutputDevice(m_audioDevices.defaultOutputDevice());
@@ -319,7 +319,10 @@ void SourceModelApp::renderMain() {
 
     ImGui::SameLine(f0LabelW + 15 * em() + bLabelW + style.ItemSpacing.x);
 
-    ImGui::Checkbox("Bypass filter?", &m_doBypassFilter);
+    if (ImGui::Checkbox("Bypass filter?", &m_doBypassFilter)) {
+        m_sourceGenerator.setNormalized(m_doBypassFilter);
+        m_formantGenerator.setNormalized(!m_doBypassFilter);
+    }
 
     for (int k = 0; k < FormantGenerator::kNumFormants; ++k) {
         renderFormantParameterControl(k, fLabelW, bLabelW, gLabelW);

@@ -8,6 +8,7 @@
 #include "GlottalFlowModel.h"
 #include "GlottalFlowParameters.h"
 #include "audio/BufferedGenerator.h"
+#include "audio/LookAheadGainReduction.h"
 #include "math/filters/Butterworth.h"
 #include "math/filters/SOSFilter.h"
 
@@ -19,8 +20,6 @@ class SourceGenerator : public BufferedGenerator {
 
     double pitch() const;
     void   setPitch(double f0);
-
-    void setSampleRate(double fs);
 
     void handleModelChanged(GlottalFlowModelType type);
     void handleParamChanged(const std::string& name, double value);
@@ -45,12 +44,10 @@ class SourceGenerator : public BufferedGenerator {
     std::shared_ptr<nativeformat::param::Param> m_f0;
 
     double m_targetF0;
-    double m_fs;
 
     double           m_gfmTime;
     std::atomic_bool m_internalParamChanged;
 
-    bool        m_needsToRecreateFilters;
     Butterworth m_antialiasFilter;
 };
 

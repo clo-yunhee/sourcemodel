@@ -4,12 +4,21 @@
 #include <cstddef>
 #include <cstdint>
 
+#if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
+    #define EMBED_ARRAY 1
+#else
+    #define EMBED_ARRAY 0
+#endif
+
 namespace embedded {
 namespace detail {
-template <size_t byteCount, size_t u32count, std::array<uint32_t, u32count> arr>
+#if EMBED_ARRAY
+// Long string literals are slower to compile on MSVC, use an array of u32 literals.
+template <std::size_t byteCount, std::size_t u32count,
+          std::array<std::uint32_t, u32count> arr>
 class embedded {
    public:
-    inline constexpr size_t size() const { return byteCount; }
+    inline constexpr std::size_t size() const { return byteCount; }
 
     template <typename T>
     inline constexpr operator const T *() const {
@@ -18,16 +27,41 @@ class embedded {
 
     template <typename T>
     inline constexpr operator T *() const {
-        return const_cast<T *>((const T*) (*this));
+        return const_cast<T *>((const T *)(*this));
     }
 };
 
-template <size_t byteCount, size_t u32count, std::array<uint32_t, u32count> arr>
+template <std::size_t byteCount, std::size_t u32count,
+          std::array<std::uint32_t, u32count> arr>
 inline constexpr auto makeEmbedded() {
     return embedded<byteCount, u32count, arr>();
 }
+#else   // !EMBED_ARRAY
+template <std::size_t byteCount, const char data[byteCount]>
+class embedded {
+   public:
+    inline constexpr std::size_t size() const { return byteCount; }
+
+    template <typename T>
+    inline constexpr operator const T *() const {
+        return reinterpret_cast<const T *>(data);
+    }
+
+    template <typename T>
+    inline constexpr operator T *() const {
+        return const_cast<T *>((const T *)(*this));
+    }
+};
+
+template <std::size_t byteCount, const char data[byteCount]>
+inline constexpr auto makeEmbedded() {
+    return embedded<byteCount, data>();
+}
+#endif  // EMBED_ARRAY
 }  // namespace detail
 
-inline constexpr size_t operator""_uz(unsigned long long num) { return size_t(num); }
+inline constexpr std::size_t operator""_uz(unsigned long long num) {
+    return std::size_t(num);
+}
 
 }  // namespace embedded

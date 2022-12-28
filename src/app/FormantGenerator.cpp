@@ -5,6 +5,7 @@ using nativeformat::param::createParam;
 FormantGenerator::FormantGenerator(const AudioTime&           time,
                                    const std::vector<double>& input)
     : BufferedGenerator(time), m_input(input) {
+    setSampleRate(48000);
     // Initializing it manually instead of an initializer list constructor because
     // for some reason Emscripten doesn't like it
     double initial[][3] = {{800, 0, 80},
@@ -61,14 +62,14 @@ void FormantGenerator::setGain(const int k, const double Gk) {
     m_targetG[k] = Gk;
 }
 
-void FormantGenerator::setSampleRate(const double fs) {
-    m_fs = fs;
-    for (auto& filter : m_filters) {
-        filter.setSampleRate(fs);
-    }
-}
-
 void FormantGenerator::fillInternalBuffer(std::vector<double>& out) {
+    if (hasSampleRateChanged()) {
+        for (auto& filter : m_filters) {
+            filter.setSampleRate(fs());
+        }
+        ackSampleRateChange();
+    }
+
     for (int i = 0; i < out.size(); ++i) {
         const double t = time(i);
 
@@ -94,7 +95,7 @@ void FormantGenerator::fillInternalBuffer(std::vector<double>& out) {
             }*/
 
             m_filters[k].update();
-            y = m_filters[k].tick(y / pow((double)kNumFormants, 1.65));
+            y = m_filters[k].tick(y);
         }
 
         out[i] = y;

@@ -23,8 +23,6 @@ class FormantGenerator : public BufferedGenerator {
     double gain(int k) const;
     void   setGain(int k, double Gk);
 
-    void setSampleRate(double fs);
-
    protected:
     void fillInternalBuffer(std::vector<double>& out) override;
 
@@ -41,8 +39,6 @@ class FormantGenerator : public BufferedGenerator {
 
     // One filter per formant.
     std::array<OneFormantFilter, kNumFormants> m_filters;
-
-    double m_fs;
 
     const std::vector<double>& m_input;
 };

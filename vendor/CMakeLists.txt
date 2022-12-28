@@ -29,7 +29,15 @@ foreach(_freetype_option "SKIP_INSTALL_HEADERS" "SKIP_INSTALL_LIBRARIES"
             "CMAKE_DISABLE_FIND_PACKAGE_BROTLI")
     set(${_freetype_option} TRUE CACHE INTERNAL "")
 endforeach()
-FetchContent_MakeAvailable(freetype)
+
+if(NOT freetype_POPULATED)
+    FetchContent_Populate(freetype)
+
+    file(GLOB _freetype_patch "${CMAKE_CURRENT_SOURCE_DIR}/freetype/*")
+    file(COPY ${_freetype_patch} DESTINATION ${freetype_SOURCE_DIR})
+
+    add_subdirectory(${freetype_SOURCE_DIR} ${freetype_BINARY_DIR})
+endif()
 
 # RtAudio
 if(NOT CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
@@ -63,7 +71,7 @@ if(NOT fftw3_POPULATED)
 
     target_include_directories(fftw3 INTERFACE $<BUILD_INTERFACE:${fftw3_SOURCE_DIR}/api>)
     if(WIN32)
-        target_compile_definitions(fftw3 PRIVATE HAVE_ALIGNED_MALLOC)
+        target_compile_definitions(fftw3 PRIVATE HAVE_ALIGNED_MALLOC _CRT_SECURE_NO_WARNINGS)
     endif()
 endif()
 

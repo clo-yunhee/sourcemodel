@@ -267,6 +267,7 @@ void Application::setupFonts() {
                                    em() + 1, &config, &rangesFaSolid[0]);
 
     io.Fonts->Build();
+
     resetDeviceObjects();
 }
 

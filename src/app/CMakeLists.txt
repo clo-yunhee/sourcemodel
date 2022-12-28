@@ -1,8 +1,13 @@
 set(_target SourceModel)
 
 add_executable(${_target}
+    audio/AudioTime.h
     audio/BufferedGenerator.cpp
     audio/BufferedGenerator.h
+    audio/GainReductionComputer.cpp
+    audio/GainReductionComputer.h
+    audio/LookAheadGainReduction.cpp
+    audio/LookAheadGainReduction.h
     math/filters/AAF.h
     math/filters/Butterworth.cpp
     math/filters/Butterworth.h
@@ -94,7 +99,10 @@ endif()
 
 if(CMAKE_SYSTEM_NAME STREQUAL "Windows")
     target_compile_definitions(${_target} PRIVATE "IMGUI_ENABLE_WIN32_DEFAULT_IME_FUNCTIONS")
-    target_compile_options(${_target} PRIVATE "/utf-8")
+
+    if(MSVC)
+        target_compile_options(${_target} PRIVATE "/utf-8")
+    endif()
 
     # Only disable console in Release build
     if(CMAKE_BUILD_TYPE STREQUAL "Release")

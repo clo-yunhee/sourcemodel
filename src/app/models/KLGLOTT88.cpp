@@ -1,5 +1,7 @@
 #include "KLGLOTT88.h"
 
+#include <cmath>
+
 using namespace models;
 
 double KLGLOTT88::evaluate(double t) const {
