@@ -4,12 +4,6 @@
 #include <cstddef>
 #include <cstdint>
 
-#if defined(_MSC_VER) && !defined(__INTEL_COMPILER)
-    #define EMBED_ARRAY 1
-#else
-    #define EMBED_ARRAY 0
-#endif
-
 namespace embedded {
 namespace detail {
 #if EMBED_ARRAY

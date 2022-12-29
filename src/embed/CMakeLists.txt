@@ -1,6 +1,12 @@
 add_library(embed INTERFACE)
 target_include_directories(embed INTERFACE ${CMAKE_CURRENT_LIST_DIR}/include)
 
+if(MSVC)
+    target_compile_definitions(embed INTERFACE "EMBED_ARRAY=0")
+else()
+    target_compile_definitions(embed INTERFACE "EMBED_ARRAY=1")
+endif()
+
 #embed_cli: if cross compiling needs to be built as a host executable
 if(CMAKE_CROSSCOMPILING)
     include(ExternalProject)
