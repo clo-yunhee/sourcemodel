@@ -19,8 +19,8 @@ void AudioOutput::setDevice(const RtAudio::DeviceInfo &device) {
     bool restart = m_audio.isStreamRunning();
     if (restart) {
         stopPlaying();
-        closeStream();
     }
+    closeStream();
 
     m_device = device;
     std::cout << "AudioOutput: device set: " << device.name << std::endl;

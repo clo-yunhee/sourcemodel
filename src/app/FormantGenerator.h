@@ -25,9 +25,6 @@ class FormantGenerator : public BufferedGenerator {
     double bandwidth(int k) const;
     void   setBandwidth(int k, double Bk);
 
-    double gain(int k) const;
-    void   setGain(int k, double Gk);
-
     const FilterSpectrum& spectrum() const;
     FilterSpectrum&       spectrum();
 
@@ -37,8 +34,7 @@ class FormantGenerator : public BufferedGenerator {
     void fillInternalBuffer(std::vector<double>& out) override;
 
    private:
-    void   updateSpectrum();
-    double filterGainAtDC();
+    void updateSpectrum();
 
     FilterSpectrum   m_spectrum;
     std::atomic_bool m_mustRegenSpectrum;
@@ -46,12 +42,10 @@ class FormantGenerator : public BufferedGenerator {
     // Target value for each parameter.
     std::array<double, kNumFormants> m_targetF;
     std::array<double, kNumFormants> m_targetB;
-    std::array<double, kNumFormants> m_targetG;
 
     // NFParam for each parameter.
     std::array<std::shared_ptr<nativeformat::param::Param>, kNumFormants> m_F;
     std::array<std::shared_ptr<nativeformat::param::Param>, kNumFormants> m_B;
-    std::array<std::shared_ptr<nativeformat::param::Param>, kNumFormants> m_G;
 
     // One filter per formant.
     std::array<OneFormantFilter, kNumFormants> m_filters;

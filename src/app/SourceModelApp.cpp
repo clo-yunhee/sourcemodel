@@ -434,17 +434,6 @@ void SourceModelApp::renderFormantParameterControl(const int k, const float fLab
                        "%g Hz")) {
         m_formantGenerator.setBandwidth(k, band);
     }
-
-    ImGui::SameLine();
-
-    snprintf(fieldLabel, bufferLength, "G%s", subscriptK[k]);
-    snprintf(fieldId, bufferLength, "##param_G%d", (k + 1));
-
-    double gain = m_formantGenerator.gain(k);
-    if (ScrollableDrag(fieldLabel, gLabelW, fieldId, 7.5 * em(), &gain, -200.0, 5.0,
-                       "%g dB", false)) {
-        m_formantGenerator.setGain(k, gain);
-    }
 }
 
 bool SourceModelApp::ScrollableDrag(const char* fieldLabel, const float labelW,

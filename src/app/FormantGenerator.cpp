@@ -8,24 +8,17 @@ FormantGenerator::FormantGenerator(const AudioTime&           time,
     setSampleRate(48000);
     // Initializing it manually instead of an initializer list constructor because
     // for some reason Emscripten doesn't like it
-    double initial[][3] = {{800, 0, 80},
-                           {1150, -6, 90},
-                           {2900, -32, 120},
-                           {3900, -20, 130},
-                           {4650, -50, 140}};
+    double initial[][2] = {{800, 80}, {1150, 90}, {2900, 120}, {3900, 130}, {4650, 140}};
 
     for (int k = 0; k < kNumFormants; ++k) {
         const double fk = initial[k][0];
-        const double gk = initial[k][1];
-        const double bk = initial[k][2];
+        const double bk = initial[k][1];
 
         m_filters[k].setFrequency(fk);
-        m_filters[k].setGain(gk);
         m_filters[k].setBandwidth(bk);
 
         m_targetF[k] = m_filters[k].frequency();
         m_targetB[k] = m_filters[k].bandwidth();
-        m_targetG[k] = m_filters[k].gain();
     }
 
     m_lipRadiationMemory = 0;
@@ -51,17 +44,6 @@ void FormantGenerator::setBandwidth(const int k, const double Bk) {
         m_B[k] = createParam(Bk, 600.0, 10.0, "B" + std::to_string(k + 1));
     }
     m_targetB[k] = Bk;
-}
-
-double FormantGenerator::gain(const int k) const { return m_targetG[k]; }
-
-void FormantGenerator::setGain(const int k, const double Gk) {
-    if (m_G[k]) {
-        m_G[k]->linearRampToValueAtTime(Gk, time() + 0.15);
-    } else {
-        m_G[k] = createParam(Gk, 5.0, -200.0, "G" + std::to_string(k + 1));
-    }
-    m_targetG[k] = Gk;
 }
 
 const FilterSpectrum& FormantGenerator::spectrum() const { return m_spectrum; }
@@ -95,7 +77,6 @@ void FormantGenerator::fillInternalBuffer(std::vector<double>& out) {
         for (int k = 0; k < kNumFormants; ++k) {
             if (m_F[k]) m_filters[k].setFrequency(m_F[k]->valueForTime(t));
             if (m_B[k]) m_filters[k].setBandwidth(m_B[k]->valueForTime(t));
-            if (m_G[k]) m_filters[k].setGain(m_G[k]->valueForTime(t));
 
             m_filters[k].update();
             y = m_filters[k].tick(y);
@@ -111,7 +92,6 @@ void FormantGenerator::fillInternalBuffer(std::vector<double>& out) {
     for (int k = 0; k < kNumFormants; ++k) {
         if (m_F[k]) m_F[k]->pruneEventsPriorToTime(time());
         if (m_B[k]) m_B[k]->pruneEventsPriorToTime(time());
-        if (m_G[k]) m_G[k]->pruneEventsPriorToTime(time());
     }
 
     m_mustRegenSpectrum = true;

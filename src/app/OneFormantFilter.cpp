@@ -9,16 +9,8 @@ using namespace boost::math::double_constants;
 using boost::math::cos_pi;
 using boost::math::sin_pi;
 
-OneFormantFilter::OneFormantFilter(const double fc, const double gain, const double bw,
-                                   const double fs)
-    : m_fs(fs),
-      m_fc(fc),
-      m_q(fc / bw),
-      m_bw(bw),
-      m_gain(gain),
-      m_fcMult(1),
-      m_qMult(1),
-      m_gainOff(0) {}
+OneFormantFilter::OneFormantFilter(const double fc, const double bw, const double fs)
+    : m_fs(fs), m_fc(fc), m_q(fc / bw), m_bw(bw), m_fcMult(1), m_qMult(1) {}
 
 double OneFormantFilter::sampleRate() const { return m_fs; }
 
@@ -45,10 +37,6 @@ void OneFormantFilter::setBandwidth(const double bw) {
     m_q = m_fc / bw;
 }
 
-double OneFormantFilter::gain() const { return m_gain; }
-
-void OneFormantFilter::setGain(const double gain) { m_gain = gain; }
-
 double OneFormantFilter::frequencyMultiplier() const { return m_fcMult; }
 
 void OneFormantFilter::setFrequencyMultiplier(const double fcMult) { m_fcMult = fcMult; }
@@ -56,10 +44,6 @@ void OneFormantFilter::setFrequencyMultiplier(const double fcMult) { m_fcMult = 
 double OneFormantFilter::qualityMultiplier() const { return m_qMult; }
 
 void OneFormantFilter::setQualityMultiplier(const double qMult) { m_qMult = qMult; }
-
-double OneFormantFilter::gainOffset() const { return m_gainOff; }
-
-void OneFormantFilter::setGainOffset(const double gainOff) { m_gainOff = gainOff; }
 
 void OneFormantFilter::update() {
     const double r = exp(-pi * m_bw / m_fs);
