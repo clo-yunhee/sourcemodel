@@ -194,10 +194,10 @@ void SourceModelApp::renderMain() {
         double Rd = m_glottalFlow.parameters().Rd.value();
 
         // By 0.01 if < 0.1 else 0.1
-        const int precision = Rd <= 0.1 ? -2 : -1;
+        const int precision = Rd <= 0.1 ? -3 : -2;
 
-        if (ScrollableDrag("Rd \u2208 [0.01, 6.00]", itemX, "##param_Rd", 15 * em(), &Rd,
-                           0.01, 6.0, "%.2f", false, precision)) {
+        if (ScrollableDrag("Rd \u2208 [0.01, 6]", itemX, "##param_Rd", 15 * em(), &Rd,
+                           0.01, 6.0, "%g", false, precision)) {
             m_glottalFlow.parameters().Rd.setValue(Rd);
         }
 
