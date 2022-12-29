@@ -13,7 +13,7 @@ using namespace models;
 using boost::math::cos_pi;
 using boost::math::sin_pi;
 
-inline double lerp(double v0, double v1, double t) { return v0 * (1 - t) + v1 * t; }
+inline double lerp(double v0, double v1, double t) { return (1 - t) * v0 + t * v1; }
 
 double LF::evaluate(double t) const {
     static constexpr double T0 = 1;
@@ -57,21 +57,8 @@ void LF::fitParameters(const GlottalFlowParameters& params) {
         const double Rd = params.Rd.value();
         const int    index = std::floor((Rd - Rd_min) / Rd_step);
 
-        if (index >= Rd_table.size() - 1) {
-            std::tie(m_Te, m_Tp, m_Ta, m_alpha, m_epsilon) = Rd_table.back();
-        } else {
-            const double t = (Rd - Rd_min) / Rd_step - index;
-
-            const auto& [Te0, Tp0, Ta0, alpha0, epsilon0] = Rd_table[index];
-            const auto& [Te1, Tp1, Ta1, alpha1, epsilon1] = Rd_table[index + 1];
-
-            m_Ee = 1;
-            m_Te = lerp(Te0, Te1, t);
-            m_Tp = lerp(Tp0, Tp1, t);
-            m_Ta = lerp(Ta0, Ta1, t);
-            m_alpha = lerp(alpha0, alpha1, t);
-            m_epsilon = lerp(epsilon1, epsilon1, t);
-        }
+        m_Ee = Ee;
+        std::tie(m_Te, m_Tp, m_Ta, m_alpha, m_epsilon) = Rd_table[index];
     }
 }
 

@@ -42,7 +42,7 @@ void SourceGenerator::handleModelChanged(const GlottalFlowModelType type) {
 void SourceGenerator::handleParamChanged(const std::string& name, const double value) {
     if (name == "Rd") {
         if (m_Rd) {
-            m_Rd->linearRampToValueAtTime(value, time() + 0.15);
+            m_Rd->exponentialRampToValueAtTime(value, time() + 0.1);
         } else {
             m_Rd = createParam(value, 6.00, 0.01, name);
         }
@@ -61,7 +61,7 @@ void SourceGenerator::handleParamChanged(const std::string& name, const double v
     }
 
     if (*param) {
-        (*param)->linearRampToValueAtTime(value, time() + 0.15);
+        (*param)->linearRampToValueAtTime(value, time() + 0.1);
     } else {
         *param = createParam(value, 1.0, 0.0, name);
     }
@@ -87,15 +87,15 @@ void SourceGenerator::fillInternalBuffer(std::vector<double>& out) {
         m_currentTime = 0;
     }
 
+    // Rebuild model if needed.
+    if (m_internalParamChanged) {
+        m_internalParamChanged = false;
+        model->updateParameterBounds(m_gfmParameters);
+        model->fitParameters(m_gfmParameters);
+    }
+
     for (int i = 0; i < out.size(); ++i) {
         const double t = time(i);
-
-        // Rebuild model if needed.
-        if (m_internalParamChanged) {
-            m_internalParamChanged = false;
-            model->updateParameterBounds(m_gfmParameters);
-            model->fitParameters(m_gfmParameters);
-        }
 
         // Evaluate.
         out[i] =
@@ -113,12 +113,19 @@ void SourceGenerator::fillInternalBuffer(std::vector<double>& out) {
             m_currentF0 = m_f0->valueForTime(t);
             m_currentPeriod = std::round(fs() / m_currentF0);
             m_currentTime = 0;
+
+            // Rebuild model if needed.
+            if (m_internalParamChanged) {
+                m_internalParamChanged = false;
+                model->updateParameterBounds(m_gfmParameters);
+                model->fitParameters(m_gfmParameters);
+            }
         }
     }
 
     // Async filter creation
     if (hasSampleRateChanged()) {
-        m_antialiasFilter.loPass(fs(), fs() * 0.4, 6);
+        m_antialiasFilter.loPass(fs(), fs() / 2 - 2000.0, 6);
         ackSampleRateChange();
     }
 
