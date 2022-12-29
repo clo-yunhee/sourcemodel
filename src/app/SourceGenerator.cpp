@@ -8,9 +8,9 @@ using nativeformat::param::createParam;
 SourceGenerator::SourceGenerator(const AudioTime& time, GlottalFlow& glottalFlow)
     : BufferedGenerator(time),
       m_glottalFlow(glottalFlow),
-      m_gfmTime(0),
+      m_currentPeriod(0),
       m_internalParamChanged(true) {
-    setPitch(200);
+    setPitch(120);
     setSampleRate(48000);
 
     m_gfmParameters.Oq.valueChanged.connect(&SourceGenerator::handleInternalParamChanged,
@@ -42,7 +42,7 @@ void SourceGenerator::handleModelChanged(const GlottalFlowModelType type) {
 void SourceGenerator::handleParamChanged(const std::string& name, const double value) {
     if (name == "Rd") {
         if (m_Rd) {
-            m_Rd->linearRampToValueAtTime(value, time() + 0.1);
+            m_Rd->linearRampToValueAtTime(value, time() + 0.15);
         } else {
             m_Rd = createParam(value, 6.00, 0.01, name);
         }
@@ -61,7 +61,7 @@ void SourceGenerator::handleParamChanged(const std::string& name, const double v
     }
 
     if (*param) {
-        (*param)->linearRampToValueAtTime(value, time() + 0.1);
+        (*param)->linearRampToValueAtTime(value, time() + 0.15);
     } else {
         *param = createParam(value, 1.0, 0.0, name);
     }
@@ -81,6 +81,12 @@ void SourceGenerator::fillInternalBuffer(std::vector<double>& out) {
         return;
     }
 
+    if (m_currentPeriod == 0) {
+        m_currentF0 = m_f0->valueForTime(time());
+        m_currentPeriod = std::round(fs() / m_currentF0);
+        m_currentTime = 0;
+    }
+
     for (int i = 0; i < out.size(); ++i) {
         const double t = time(i);
 
@@ -92,23 +98,27 @@ void SourceGenerator::fillInternalBuffer(std::vector<double>& out) {
         }
 
         // Evaluate.
-        out[i] = model->evaluate(m_gfmTime);
+        out[i] =
+            model->evaluate(1.0 - double(m_currentTime) / double(m_currentPeriod - 1));
 
-        m_gfmTime += m_f0->valueForTime(t) / fs();
+        ++m_currentTime;
 
-        if (m_gfmTime >= 1.0) {
+        if (m_currentTime >= m_currentPeriod) {
             // Update parameters every period.
             if (m_Oq) m_gfmParameters.Oq.setValue(m_Oq->valueForTime(t));
             if (m_am) m_gfmParameters.am.setValue(m_am->valueForTime(t));
             if (m_Qa) m_gfmParameters.Qa.setValue(m_Qa->valueForTime(t));
             if (m_Rd) m_gfmParameters.Rd.setValue(m_Rd->valueForTime(t));
-            m_gfmTime = fmod(m_gfmTime, 1.0);
+
+            m_currentF0 = m_f0->valueForTime(t);
+            m_currentPeriod = std::round(fs() / m_currentF0);
+            m_currentTime = 0;
         }
     }
 
     // Async filter creation
     if (hasSampleRateChanged()) {
-        m_antialiasFilter.loPass(fs(), fs() * 0.47, 5);
+        m_antialiasFilter.loPass(fs(), fs() * 0.4, 6);
         ackSampleRateChange();
     }
 

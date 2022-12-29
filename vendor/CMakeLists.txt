@@ -96,7 +96,7 @@ FetchContent_Declare(
     URL      https://github.com/boostorg/boost/releases/download/boost-1.81.0/boost-1.81.0.tar.gz
     URL_HASH SHA256=121DA556B718FD7BD700B5F2E734F8004F1CFA78B7D30145471C526BA75A151C
 )
-set(BOOST_INCLUDE_LIBRARIES "circular_buffer;math" CACHE INTERNAL "")
+set(BOOST_INCLUDE_LIBRARIES "circular_buffer;math;multiprecision" CACHE INTERNAL "")
 FetchContent_MakeAvailable(Boost)
 
 # NFParam (AudioParam-like library)

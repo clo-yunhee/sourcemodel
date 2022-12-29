@@ -45,6 +45,10 @@ class SourceGenerator : public BufferedGenerator {
 
     double m_targetF0;
 
+    double m_currentF0;
+    int    m_currentPeriod;
+    int    m_currentTime;
+
     double           m_gfmTime;
     std::atomic_bool m_internalParamChanged;
 

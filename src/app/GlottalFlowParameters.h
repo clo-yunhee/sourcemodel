@@ -20,7 +20,7 @@ struct GlottalFlowParameters {
     }
     sigslot::signal<bool> usingRdChanged;
 
-    GlottalFlowParameter Rd{"Rd", 1.5, 0.01, 6.00};
+    GlottalFlowParameter Rd{"Rd", 0.32, 0.01, 6.00};
 
    private:
     bool _usingRd{true};

@@ -27,6 +27,7 @@ add_executable(${_target}
     math/utils.h
     models/KLGLOTT88.cpp
     models/KLGLOTT88.h
+    models/LF_precomputed_Rd.cpp
     models/LF.cpp
     models/LF.h
     models/RosenbergC.cpp
@@ -35,6 +36,8 @@ add_executable(${_target}
     models/RPlusPlus.h
     Application.cpp
     Application.h
+    FilterSpectrum.cpp
+    FilterSpectrum.h
     FormantGenerator.cpp
     FormantGenerator.h
     GeneratorSpectrum.cpp
@@ -184,3 +187,6 @@ if(USE_USAN AND NOT MSVC)
     target_compile_options(${_target} PRIVATE "-fsanitize=undefined")
     target_link_options(${_target} PRIVATE "-fsanitize=undefined")
 endif()
+
+# Precompute Rd parameters custom target
+add_subdirectory(models/precompute)

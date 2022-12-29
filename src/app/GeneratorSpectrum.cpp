@@ -1,11 +1,15 @@
 #include "GeneratorSpectrum.h"
 
 #include <boost/math/constants/constants.hpp>
+#include <boost/math/special_functions/cos_pi.hpp>
+#include <boost/math/special_functions/sin_pi.hpp>
 
 #include "audio/BufferedGenerator.h"
 #include "math/utils.h"
 
 using namespace boost::math::double_constants;
+using boost::math::cos_pi;
+using boost::math::sin_pi;
 
 GeneratorSpectrum::GeneratorSpectrum(BufferedGenerator *initialGenerator)
     : m_generator(initialGenerator) {
@@ -31,8 +35,9 @@ void GeneratorSpectrum::setTransformSize(const int nfft) {
             constexpr double a2 = 0.277263158;
             constexpr double a3 = 0.083578947;
             constexpr double a4 = 0.006947368;
-            m_window[i] = a0 - a1 * cos(two_pi * x) + a2 * cos(2 * two_pi * x) -
-                          a3 * cos(3 * two_pi * x) + a4 * cos(4 * two_pi * x);
+
+            m_window[i] = a0 - a1 * cos_pi(2 * x) + a2 * cos_pi(4 * x) -
+                          a3 * cos_pi(6 * x) + a4 * cos_pi(8 * x);
         }
         // Reconstruct frequency array.
         m_freqs.resize(m_dtft.binCount());

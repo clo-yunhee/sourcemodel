@@ -37,15 +37,19 @@ class BufferedGenerator {
    private:
     void processGainReduction();
 
+    template <typename T>
+    using cbso = boost::circular_buffer_space_optimized<T>;
+
     const AudioTime& m_time;
 
-    std::shared_mutex              m_mutex;
-    int                            m_bufferLength;
-    boost::circular_buffer<double> m_buffer;
+    std::shared_mutex m_mutex;
+    int               m_bufferLength;
+    cbso<double>      m_buffer;
 
-    std::vector<double> m_tempBuffer;
-    std::vector<float>  m_sidechainSignal;
-    std::vector<float>  m_gainReduction;
+    std::vector<double> m_internalBuffer;  // Filled by fillInternalBuffer.
+
+    int          m_delaySamples;  // Compressor delay in samples.
+    cbso<double> m_delayBuffer;
 
     double m_fs;
     bool   m_fsChanged;
@@ -56,6 +60,8 @@ class BufferedGenerator {
     bool                   m_isNormalized;
     GainReductionComputer  m_gainReductionComputer;
     LookAheadGainReduction m_lookAheadGainReduction;
+    std::vector<float>     m_sidechainSignal;
+    std::vector<float>     m_gainReduction;
 };
 
 #endif  // SOURCEMODEL__AUDIO_BUFFERED_GENERATOR_H

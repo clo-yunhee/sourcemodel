@@ -62,27 +62,6 @@ double OneFormantFilter::gainOffset() const { return m_gainOff; }
 void OneFormantFilter::setGainOffset(const double gainOff) { m_gainOff = gainOff; }
 
 void OneFormantFilter::update() {
-    /*
-    const double linGain = std::pow(10.0, 0.05 * (m_gain + m_gainOff));
-    const double wc = (m_fc * m_fcMult) * two_pi;
-    const double a1 = 1.0 / (m_q * m_qMult);
-    const double b2 = 0.0;
-    const double b1 = linGain;
-    const double b0 = 0.0;
-
-    const double c = 1.0 / tan(wc * 0.5 / m_fs);
-    const double csq = c * c;
-    const double d = 1 + a1 * c + csq;
-
-    const double _b0 = (b0 + b1 * c + b2 * csq) / d;
-    const double _b1 = 2.0 * (b0 - b2 * csq) / d;
-    const double _b2 = (b0 - b1 * c + b2 * csq) / d;
-    const double _a1 = 2 * (1 - csq) / d;
-    const double _a2 = (1 - a1 * c + csq) / d;
-
-    m_biquad.update(_b0, _b1, _b2, _a1, _a2);
-    */
-
     const double r = exp(-pi * m_bw / m_fs);
 
     const double cosTheta = cos_pi(2 * m_fc / m_fs);
@@ -95,7 +74,15 @@ void OneFormantFilter::update() {
     const double a1 = -2 * r * cosTheta;
     const double a2 = r * r;
 
-    m_biquad.update(b0, b1, b2, a1, a2);
+    // Gain at DC is when z = +1.
+    const double gDC = (b0 + b1 + b2) / (1 + a1 + a2);
+
+    m_biquad.update(b0 / gDC, b1 / gDC, b2 / gDC, a1, a2);
+    m_coefs = {b0 / gDC, b1 / gDC, b2 / gDC, 1.0, a1, a2};
 }
 
 double OneFormantFilter::tick(const double x) { return m_biquad.tick(x); }
+
+const std::array<double, 6>& OneFormantFilter::getBiquadCoefficients() const {
+    return m_coefs;
+}

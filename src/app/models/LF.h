@@ -26,6 +26,13 @@ class LF : public GlottalFlowModel {
 
     double m_epsilon;
     double m_alpha;
+
+    // Pre-computed Rd lookup table.
+    static double Rd_min;
+    static double Rd_max;
+    static double Rd_step;
+    // Tuple to be unpacked.
+    static std::vector<std::tuple<double, double, double, double, double>> Rd_table;
 };
 }  // namespace models
 

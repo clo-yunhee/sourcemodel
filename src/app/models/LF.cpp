@@ -13,6 +13,8 @@ using namespace models;
 using boost::math::cos_pi;
 using boost::math::sin_pi;
 
+inline double lerp(double v0, double v1, double t) { return v0 * (1 - t) + v1 * t; }
+
 double LF::evaluate(double t) const {
     static constexpr double T0 = 1;
 
@@ -25,7 +27,7 @@ double LF::evaluate(double t) const {
     if (t <= m_Te) {
         dg = -m_Ee * std::exp(m_alpha * (t - m_Te)) * sin_pi(t / m_Tp) /
              sin_pi(m_Te / m_Tp);
-    } else if (!std::isinf(m_epsilon)) {
+    } else if (!std::isinf(m_epsilon) && !std::isnan(m_epsilon)) {
         dg = -m_Ee / (m_epsilon * m_Ta) *
              (std::exp(-m_epsilon * (t - m_Te)) - std::exp(-m_epsilon * (T0 - m_Te)));
     } else {
@@ -51,74 +53,25 @@ void LF::fitParameters(const GlottalFlowParameters& params) {
 
         fitParameters(Ee, T0, Te, Tp, Ta);
     } else {
+        // Just interpolate the pre-computed values.
         const double Rd = params.Rd.value();
+        const int    index = std::floor((Rd - Rd_min) / Rd_step);
 
-        double Rap;
-        double Rkp;
-        double Rgp;
-
-        if (0.01 <= Rd && Rd < 0.21) {
-            Rap = 0;
-        } else if (0.21 <= Rd && Rd <= 2.70) {
-            Rap = (-1 + 4.8 * Rd) / 100;
-        } else if (2.70 < Rd && Rd <= 6.00) {
-            Rap = (32.3 / Rd) / 100;
-        }
-
-        double OQupp;
-        if (1.8476 <= Rd && Rd <= 6.00) {
-            OQupp = 1 - 1 / (2.17 * Rd);
-        }
-
-        constexpr bool variant1 = false;
-
-        if constexpr (variant1) {
-            // Variant 1.
-
-            if (1.8476 < Rd && Rd <= 6.00) {
-                Rgp = 9.3552e-3 + 596e-2 / (7.96 - 2 * OQupp);
-            }
-
-            if (0.01 <= Rd && Rd <= 2.70) {
-                Rkp = (22.4 + 11.8 * Rd) / 100;
-            } else if (2.70 < Rd && Rd <= 6.00) {
-                Rkp = (2 * Rgp * OQupp) - 1.0428;
-            }
-
-            if (0.01 <= Rd && Rd <= 1.8476) {
-                Rgp = (0.25 * Rkp) / ((0.11 * Rd) / (0.5 + 1.2 * Rkp) - Rap);
-            }
+        if (index >= Rd_table.size() - 1) {
+            std::tie(m_Te, m_Tp, m_Ta, m_alpha, m_epsilon) = Rd_table.back();
         } else {
-            // Variant 2.
+            const double t = (Rd - Rd_min) / Rd_step - index;
 
-            if (1.8476 < Rd && Rd <= 6.00) {
-                Rgp = 9.3552e-3 + 596e-2 / (7.96 - 2 * OQupp);
-            }
+            const auto& [Te0, Tp0, Ta0, alpha0, epsilon0] = Rd_table[index];
+            const auto& [Te1, Tp1, Ta1, alpha1, epsilon1] = Rd_table[index + 1];
 
-            if (0.01 <= Rd && Rd <= 1.8476) {
-                Rkp = (22.4 + 11.8 * Rd) / 100;
-            } else if (1.8476 < Rd && Rd <= 6.00) {
-                Rkp = (2 * Rgp * OQupp) - 0.9572;
-            }
-
-            if (0.01 <= Rd && Rd <= 1.8476) {
-                Rgp = (0.25 * Rkp) / ((0.11 * Rd) / (0.5 + 1.2 * Rkp) - Rap);
-            }
+            m_Ee = 1;
+            m_Te = lerp(Te0, Te1, t);
+            m_Tp = lerp(Tp0, Tp1, t);
+            m_Ta = lerp(Ta0, Ta1, t);
+            m_alpha = lerp(alpha0, alpha1, t);
+            m_epsilon = lerp(epsilon1, epsilon1, t);
         }
-
-        // Ra = Ta / T0
-        // Rg = T0 / 2Tp
-        // Rk = (Te - Tp) / Tp
-
-        // Ta = Ra T0
-        // Tp = T0 / 2Rg
-        // Te = T0 (1 + Rk) / 2Rg
-
-        const double Ta = Rap * T0;
-        const double Tp = T0 / (2 * Rgp);
-        const double Te = T0 * (1 + Rkp) / (2 * Rgp);
-
-        fitParameters(Ee, T0, Te, Tp, Ta);
     }
 }
 

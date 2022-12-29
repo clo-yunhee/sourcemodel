@@ -29,11 +29,12 @@ SourceModelApp::SourceModelApp(const int initialWidth, const int initialHeight)
     m_audioOutput.setBufferCallback([this](std::vector<double>& out) {
         m_intermediateAudioBuffer.resize(out.size());
         m_sourceGenerator.fillBuffer(m_intermediateAudioBuffer);
-        // Compensate for amplitude differences
         if (m_doBypassFilter) {
             std::copy(m_intermediateAudioBuffer.begin(), m_intermediateAudioBuffer.end(),
                       out.begin());
             m_formantGenerator.fillBuffer(m_intermediateAudioBuffer);
+            // Compensate gain (the source is usually *perceived* louder so lower it)
+            for (auto& x : out) x *= 0.25;
         } else {
             m_formantGenerator.fillBuffer(out);
         }
@@ -49,8 +50,10 @@ SourceModelApp::SourceModelApp(const int initialWidth, const int initialHeight)
     m_formantSpectrum.setSmoothing(0.2);
     m_formantSpectrum.setTransformSize(6144);
 
-    m_sourceGenerator.setNormalized(false);
-    m_formantGenerator.setNormalized(true);
+    m_formantGenerator.spectrum().setSize(4096);
+
+    m_sourceGenerator.setNormalized(true);
+    m_formantGenerator.setNormalized(false);
 
 #ifdef USING_RTAUDIO
     setAudioOutputDevice(m_audioDevices.defaultOutputDevice());
@@ -147,6 +150,7 @@ void SourceModelApp::renderMain() {
 
     m_sourceSpectrum.update();
     m_formantSpectrum.update();
+    m_formantGenerator.updateSpectrumIfNeeded();
 
     const float childLWidth = std::max(ImGui::GetContentRegionAvail().x / 3, 25 * em());
     ImGui::BeginChild("ChildL", ImVec2(childLWidth, -1));
@@ -319,10 +323,7 @@ void SourceModelApp::renderMain() {
 
     ImGui::SameLine(f0LabelW + 15 * em() + bLabelW + style.ItemSpacing.x);
 
-    if (ImGui::Checkbox("Bypass filter?", &m_doBypassFilter)) {
-        m_sourceGenerator.setNormalized(m_doBypassFilter);
-        m_formantGenerator.setNormalized(!m_doBypassFilter);
-    }
+    ImGui::Checkbox("Bypass filter?", &m_doBypassFilter);
 
     for (int k = 0; k < FormantGenerator::kNumFormants; ++k) {
         renderFormantParameterControl(k, fLabelW, bLabelW, gLabelW);
@@ -348,15 +349,23 @@ void SourceModelApp::renderMain() {
 
         ImPlot::PushStyleVar(ImPlotStyleVar_LineWeight, 2.0f * contentScale());
 
-        ImPlot::PlotLine("Source", m_sourceSpectrum.frequencies(),
+        ImPlot::PlotLine("Glottal source", m_sourceSpectrum.frequencies(),
                          m_sourceSpectrum.magnitudesDb(), m_sourceSpectrum.binCount());
 
         ImPlot::PopStyleVar(ImPlotStyleVar_LineWeight);
 
         ImPlot::PushStyleVar(ImPlotStyleVar_LineWeight, 2.0f * contentScale());
 
-        ImPlot::PlotLine("Filtered", m_formantSpectrum.frequencies(),
+        ImPlot::PlotLine("Filtered source", m_formantSpectrum.frequencies(),
                          m_formantSpectrum.magnitudesDb(), m_formantSpectrum.binCount());
+
+        ImPlot::PopStyleVar(ImPlotStyleVar_LineWeight);
+
+        ImPlot::PushStyleVar(ImPlotStyleVar_LineWeight, 2.0f * contentScale());
+
+        ImPlot::PlotLine("Filter response", m_formantGenerator.spectrum().frequencies(),
+                         m_formantGenerator.spectrum().magnitudesDb(),
+                         m_formantGenerator.spectrum().binCount());
 
         ImPlot::PopStyleVar(ImPlotStyleVar_LineWeight);
 

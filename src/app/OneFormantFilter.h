@@ -1,6 +1,8 @@
 #ifndef SOURCEMODEL__ONEFORMANTFILTER_H
 #define SOURCEMODEL__ONEFORMANTFILTER_H
 
+#include <array>
+
 #include "math/filters/SVFBiquad.h"
 
 class OneFormantFilter {
@@ -34,6 +36,8 @@ class OneFormantFilter {
     void   update();
     double tick(double x);
 
+    const std::array<double, 6>& getBiquadCoefficients() const;
+
    private:
     double m_fs;
     double m_fc;
@@ -46,6 +50,8 @@ class OneFormantFilter {
     double m_gainOff;
 
     SVFBiquad m_biquad;
+
+    std::array<double, 6> m_coefs;
 };
 
 #endif  // SOURCEMODEL__ONEFORMANTFILTER_H

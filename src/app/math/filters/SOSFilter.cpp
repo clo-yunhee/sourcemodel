@@ -24,3 +24,7 @@ std::vector<double> SOSFilter::filter(const std::vector<double>& x) {
 
     return y;
 }
+
+const std::vector<std::array<double, 6>>& SOSFilter::coefficients() const {
+    return m_sos;
+}
