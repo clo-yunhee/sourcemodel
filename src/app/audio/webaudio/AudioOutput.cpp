@@ -31,7 +31,7 @@ void AudioOutput::startPlaying() {
         // Relatively high buffer length on web because
         // processing latency with short buffers is really big.
         // Set a high buffer length to avoid constant buffer underruns
-        desiredSpec.samples = 1024;
+        desiredSpec.samples = 2048;
         desiredSpec.callback = &audioCallback;
         desiredSpec.userdata = this;
 
