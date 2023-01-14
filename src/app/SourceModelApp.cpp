@@ -26,7 +26,9 @@ SourceModelApp::SourceModelApp(const int initialWidth, const int initialHeight)
       m_showAdvancedSourceParams(false),
       m_doBypassFilter(false),
       m_doNormalizeFlowPlot(true),
-      m_spectrumFrequencyScale(FrequencyScale_Mel) {
+      m_spectrumFrequencyScale(FrequencyScale_Mel),
+      m_logVolume(90),
+      m_linVolume(0.6561) {
     ImPlot::CreateContext();
 
     m_audioOutput.setBufferCallback([this](std::vector<Scalar>& out) {
@@ -41,14 +43,15 @@ SourceModelApp::SourceModelApp(const int initialWidth, const int initialHeight)
         } else {
             m_formantGenerator.fillBuffer(out);
         }
+        for (auto& x : out) x *= m_linVolume;
         return true;
     });
 
     m_glottalFlow.setSampleCount(1024);
     m_glottalFlow.setModelType(GlottalFlowModel_LF);  // Default model to LF.
 
-    m_sourceSpectrum.setResponseTime(0.025);
-    m_formantSpectrum.setResponseTime(0.025);
+    m_sourceSpectrum.setResponseTime(0.00125);
+    m_formantSpectrum.setResponseTime(0.00125);
 
     m_sourceSpectrum.setTransformSize(4096);
     m_formantSpectrum.setTransformSize(4096);
@@ -114,6 +117,14 @@ void SourceModelApp::renderMenuBar() {
         if (ImGui::MenuItem("\uf04c")) {
             m_audioOutput.stopPlaying();
         }
+    }
+
+    ImGui::Separator();
+
+    ImGui::SetNextItemWidth(5 * em());
+    if (ImGui::SliderFloatOrDouble("##Volume", &m_logVolume, 0.0_f, 100.0_f, "%.0f %%")) {
+        // Using x^4 as an approximation.
+        m_linVolume = std::pow(m_logVolume / 100.0_f, 4.0_f);
     }
 
     ImGui::Separator();

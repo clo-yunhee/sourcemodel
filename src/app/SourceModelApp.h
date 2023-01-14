@@ -112,6 +112,8 @@ class SourceModelApp : public Application {
     bool           m_doBypassFilter;
     bool           m_doNormalizeFlowPlot;
     FrequencyScale m_spectrumFrequencyScale;
+    Scalar         m_logVolume;
+    Scalar         m_linVolume;
 };
 
 #endif  // SOURCEMODEL__SOURCEMODELAPP_H

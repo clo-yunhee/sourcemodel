@@ -171,10 +171,6 @@ bool Application::initGLFW() {
     glfwMakeContextCurrent(m_window);
 
 #ifdef __EMSCRIPTEN__
-    // Register mouseup event on the window object to register if a slider is released
-    // when the mouse is outside of the window.
-    emscripten_set_mouseup_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, this, true,
-                                    emsMouseCallback);
 #else
     // Register content scale events.
     glfwSetWindowContentScaleCallback(m_window, glfwScaleCallback);
@@ -223,6 +219,11 @@ bool Application::setupImGui() {
     // Register HTML5 events on Emscripten.
     emscripten_set_resize_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, this, true,
                                    emsUiCallback);
+
+    // Register mouseup event on the window object to register if a slider is released
+    // when the mouse is outside of the window.
+    emscripten_set_mouseup_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, this, true,
+                                    emsMouseCallback);
 #endif
 
     return true;

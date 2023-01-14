@@ -99,7 +99,11 @@ void GeneratorSpectrum::constructWindow() {
     m_window.resize(m_nfft);
     m_values.resize(m_nfft);
 
+#ifdef __EMSCRIPTEN__
+    m_window = windows::blackmanHarris<Scalar>(m_nfft, true);
+#else
     m_window = windows::chebwin<Scalar>(m_nfft, 320, true);
+#endif
 }
 
 void GeneratorSpectrum::constructFrequencyArray() {

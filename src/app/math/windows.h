@@ -1,6 +1,7 @@
 #ifndef SOURCEMODEL__MATH_WINDOWS_H
 #define SOURCEMODEL__MATH_WINDOWS_H
 
+#include <array>
 #include <boost/math/constants/constants.hpp>
 #include <boost/math/special_functions/acosh.hpp>
 #include <boost/math/special_functions/bessel.hpp>
@@ -66,7 +67,7 @@ class linspace {
 // Sum-of-cosine templates
 template <typename T, auto& coefs>
 inline T cosineSum(T x) {
-    constexpr size_t n = std::tuple_size<decltype(coefs)>::value;
+    constexpr size_t n(coefs.size());
     T                v(coefs[0]);
     int              s = -1;
     for (size_t i = 1; i < n; ++i) {
@@ -267,7 +268,7 @@ std::vector<T> chebwin(int M, const T at, const bool sym = true) {
 
     // Compute the parameter beta
     const T order = M - 1;
-    const T beta = std::cosh(1.0 / order * acosh(std::pow(10.0, std::abs(at) / 20.0)));
+    const T beta = std::cosh(T(1) / order * acosh(std::pow(T(10), std::abs(at) / T(20))));
     std::vector<T> x(M);
     for (int i = 0; i < M; ++i) {
         x[i] = beta * cos_pi(T(i) / T(M));

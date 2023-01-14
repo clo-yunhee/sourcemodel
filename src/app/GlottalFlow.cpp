@@ -90,7 +90,7 @@ void GlottalFlow::updateSamples() {
             m_flow[i] = gauss_kronrod<float, 15>::integrate(
                 [this](double t) -> double { return m_model->evaluate(t); }, 0,
                 m_times[i], 8, 1e-6);
-    #elif defined(USING_DOUBLE_FLOAT) m_flow[i] =
+    #elif defined(USING_DOUBLE_FLOAT)
             gauss_kronrod<double, 31>::integrate(
                 [this](double t) -> double { return m_model->evaluate(t); }, 0,
                 m_times[i], 15, 1e-6);
