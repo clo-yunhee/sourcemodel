@@ -15,7 +15,7 @@
 
 class AudioOutput : public AudioTime {
    public:
-    using BufferCallback = std::function<bool(std::vector<double> &)>;
+    using BufferCallback = std::function<bool(std::vector<Scalar> &)>;
 
     AudioOutput(RtAudio &audio);
     ~AudioOutput();
@@ -28,8 +28,9 @@ class AudioOutput : public AudioTime {
 
     bool isPlaying() const;
 
-    double sampleRate() const;
-    double time(int sampleOffset) const override;
+    Scalar   sampleRate() const;
+    Scalar   time(int sampleOffset) const override;
+    uint64_t timeSamples(int sampleOffset) const override;
 
    private:
     void openStream();
@@ -43,9 +44,9 @@ class AudioOutput : public AudioTime {
     RtAudio::DeviceInfo m_device;
 
     BufferCallback      m_bufferCallback;
-    std::vector<double> m_buffer;
+    std::vector<Scalar> m_buffer;
 
-    std::atomic<double>  m_timeOffset;
+    std::atomic<Scalar>  m_timeOffset;
     std::atomic_uint64_t m_time;
 };
 

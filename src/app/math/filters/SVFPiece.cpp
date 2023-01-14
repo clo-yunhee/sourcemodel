@@ -1,18 +1,18 @@
 #include "SVFPiece.h"
 
-SVFPiece::SVFPiece() { _z1 = _z2 = 0.0; }
+SVFPiece::SVFPiece() { _z1 = _z2 = 0.0_f; }
 
-void SVFPiece::update(const double g, const double R, const FltType type) {
+void SVFPiece::update(const Scalar g, const Scalar R, const FltType type) {
     _type = type;
     _g = g;
     _R = R;
 }
 
-double SVFPiece::tick(const double x) {
-    const double HP =
-        (x - (2.0 * _R + _g) * _z1 - _z2) / (1.0 + (2.0 * _R * _g) + _g * _g);
-    const double BP = HP * _g + _z1;
-    const double LP = BP * _g + _z2;
+Scalar SVFPiece::tick(const Scalar x) {
+    const Scalar HP =
+        (x - (2.0_f * _R + _g) * _z1 - _z2) / (1.0_f + (2.0_f * _R * _g) + _g * _g);
+    const Scalar BP = HP * _g + _z1;
+    const Scalar LP = BP * _g + _z2;
 
     _z1 = _g * HP + BP;
     _z2 = _g * BP + LP;

@@ -60,6 +60,8 @@ class Application {
     // Emscripten-specific callback
     static EM_BOOL emsUiCallback(int eventType, const EmscriptenUiEvent *uiEvent,
                                  void *userData);
+    static EM_BOOL emsMouseCallback(int eventType, const EmscriptenMouseEvent *mouseEvent,
+                                    void *userData);
 #endif
 
     // GLFW callbacks

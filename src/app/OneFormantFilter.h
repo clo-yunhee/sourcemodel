@@ -7,43 +7,43 @@
 
 class OneFormantFilter {
    public:
-    OneFormantFilter(double fc = 100, double bw = 50, double fs = 48000);
+    OneFormantFilter(Scalar fc = 100, Scalar bw = 50, Scalar fs = 48000);
 
-    double sampleRate() const;
-    void   setSampleRate(double fs);
+    Scalar sampleRate() const;
+    void   setSampleRate(Scalar fs);
 
-    double frequency() const;
-    void   setFrequency(double fc);
+    Scalar frequency() const;
+    void   setFrequency(Scalar fc);
 
-    double quality() const;
-    void   setQuality(double q);
+    Scalar quality() const;
+    void   setQuality(Scalar q);
 
-    double bandwidth() const;
-    void   setBandwidth(double bw);
+    Scalar bandwidth() const;
+    void   setBandwidth(Scalar bw);
 
-    double frequencyMultiplier() const;
-    void   setFrequencyMultiplier(double fcMult);
+    Scalar frequencyMultiplier() const;
+    void   setFrequencyMultiplier(Scalar fcMult);
 
-    double qualityMultiplier() const;
-    void   setQualityMultiplier(double qMult);
+    Scalar qualityMultiplier() const;
+    void   setQualityMultiplier(Scalar qMult);
 
     void   update();
-    double tick(double x);
+    Scalar tick(Scalar x);
 
-    const std::array<double, 6>& getBiquadCoefficients() const;
+    const std::array<Scalar, 6>& getBiquadCoefficients() const;
 
    private:
-    double m_fs;
-    double m_fc;
-    double m_q;
-    double m_bw;
+    Scalar m_fs;
+    Scalar m_fc;
+    Scalar m_q;
+    Scalar m_bw;
 
-    double m_fcMult;
-    double m_qMult;
+    Scalar m_fcMult;
+    Scalar m_qMult;
 
     SVFBiquad m_biquad;
 
-    std::array<double, 6> m_coefs;
+    std::array<Scalar, 6> m_coefs;
 };
 
 #endif  // SOURCEMODEL__ONEFORMANTFILTER_H

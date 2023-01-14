@@ -171,6 +171,10 @@ bool Application::initGLFW() {
     glfwMakeContextCurrent(m_window);
 
 #ifdef __EMSCRIPTEN__
+    // Register mouseup event on the window object to register if a slider is released
+    // when the mouse is outside of the window.
+    emscripten_set_mouseup_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, this, true,
+                                    emsMouseCallback);
 #else
     // Register content scale events.
     glfwSetWindowContentScaleCallback(m_window, glfwScaleCallback);
@@ -429,6 +433,17 @@ EM_BOOL Application::emsUiCallback(const int eventType, const EmscriptenUiEvent*
         // Force it to behave as if content scale is reset.
         app->m_contentScale = -1;
         app->m_pendingContentScale = app->queryContentScale();
+        return EM_TRUE;
+    }
+    return EM_FALSE;
+}
+
+EM_BOOL Application::emsMouseCallback(const int                   eventType,
+                                      const EmscriptenMouseEvent* mouseEvent,
+                                      void*                       userData) {
+    auto app = static_cast<Application*>(userData);
+    if (eventType == EMSCRIPTEN_EVENT_MOUSEUP) {
+        ImGui::GetIO().MouseDown[mouseEvent->button] = false;
         return EM_TRUE;
     }
     return EM_FALSE;

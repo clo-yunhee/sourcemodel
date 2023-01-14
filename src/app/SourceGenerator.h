@@ -5,12 +5,14 @@
 
 #include <atomic>
 
+#include "CachedGlottalFlowModel.h"
 #include "GlottalFlowModel.h"
 #include "GlottalFlowParameters.h"
 #include "audio/BufferedGenerator.h"
 #include "audio/LookAheadGainReduction.h"
 #include "math/filters/Butterworth.h"
 #include "math/filters/SOSFilter.h"
+#include "math/utils.h"
 
 class GlottalFlow;
 
@@ -18,23 +20,24 @@ class SourceGenerator : public BufferedGenerator {
    public:
     SourceGenerator(const AudioTime& time, GlottalFlow& glottalFlow);
 
-    double pitch() const;
-    void   setPitch(double f0);
+    Scalar pitch() const;
+    void   setPitch(Scalar f0);
 
     void handleModelChanged(GlottalFlowModelType type);
-    void handleParamChanged(const std::string& name, double value);
+    void handleParamChanged(const std::string& name, Scalar value);
     void handleUsingRdChanged(bool usingRd);
 
    protected:
-    void fillInternalBuffer(std::vector<double>& out) override;
+    void fillInternalBuffer(std::vector<Scalar>& out) override;
 
    private:
-    void handleInternalParamChanged(const std::string&, double);
+    void handleInternalParamChanged(const std::string&, Scalar);
 
     GlottalFlow& m_glottalFlow;
 
     // GFM instance to handle bound checking and such.
-    GlottalFlowParameters m_gfmParameters;
+    GlottalFlowParameters  m_gfmParameters;
+    CachedGlottalFlowModel m_cachedGfm;
 
     // NFParam for each parameter.
     std::shared_ptr<nativeformat::param::Param> m_Oq;
@@ -43,13 +46,13 @@ class SourceGenerator : public BufferedGenerator {
     std::shared_ptr<nativeformat::param::Param> m_Rd;
     std::shared_ptr<nativeformat::param::Param> m_f0;
 
-    double m_targetF0;
+    Scalar m_targetF0;
 
-    double m_currentF0;
+    Scalar m_currentF0;
     int    m_currentPeriod;
     int    m_currentTime;
 
-    double           m_gfmTime;
+    Scalar           m_gfmTime;
     std::atomic_bool m_internalParamChanged;
 
     Butterworth m_antialiasFilter;

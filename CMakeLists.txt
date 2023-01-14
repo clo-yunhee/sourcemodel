@@ -28,5 +28,11 @@ if(MSVC AND USE_ASAN)
     set(CMAKE_CXX_FLAGS_DEBUG " /Zi /Ob0 /Od" CACHE INTERNAL "" FORCE)
 endif()
 
+if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten"
+        AND CMAKE_BUILD_TYPE STREQUAL "Release")
+    set(CMAKE_C_FLAGS_RELEASE " -O3" CACHE INTERNAL "" FORCE)
+    set(CMAKE_CXX_FLAGS_RELEASE " -O3" CACHE INTERNAL "" FORCE)
+endif()
+
 add_subdirectory(vendor)
 add_subdirectory(src)

@@ -1,7 +1,6 @@
 #include "GlottalFlow.h"
 
 #include <boost/math/quadrature/gauss_kronrod.hpp>
-#include <boost/math/quadrature/trapezoidal.hpp>
 #include <cmath>
 
 #include "models/KLGLOTT88.h"
@@ -55,12 +54,12 @@ void GlottalFlow::updateSamples() {
     m_flowDerivative.resize(m_sampleCount);
     m_flow.resize(m_sampleCount);
 
-    m_flowDerivativeMin.second = std::numeric_limits<double>::max();
-    m_flowDerivativeMax.second = std::numeric_limits<double>::lowest();
+    m_flowDerivativeMin.second = std::numeric_limits<Scalar>::max();
+    m_flowDerivativeMax.second = std::numeric_limits<Scalar>::lowest();
     m_flowMin.second = 0;
     m_flowMax.second = 0;
 
-    double Te;
+    Scalar Te;
     if (m_modelType == GlottalFlowModel_LF && m_parameters.usingRd()) {
         Te = ((const models::LF*)m_model.get())->Te();
     } else {
@@ -68,7 +67,7 @@ void GlottalFlow::updateSamples() {
     }
 
     for (int i = 0; i < m_sampleCount; ++i) {
-        m_times[i] = i / double(m_sampleCount);
+        m_times[i] = i / Scalar(m_sampleCount);
 
         // Make sure to include Te to include the real peak in the plot.
         if (i < m_sampleCount - 1 && m_times[i] < Te && Te < m_times[i + 1]) {
@@ -77,8 +76,27 @@ void GlottalFlow::updateSamples() {
 
         m_flowDerivative[i] = m_model->evaluate(m_times[i]);
 
-        m_flow[i] = gauss_kronrod<double, 31>::integrate(
-            [this](double t) { return m_model->evaluate(t); }, 0, m_times[i], 15, 1e-6);
+        if (m_model->hasAntiderivative()) {
+            m_flow[i] = m_model->evaluateAntiderivative(m_times[i]);
+        } else {
+// Do faster integration on Emscripten
+#ifdef __EMSCRIPTEN__
+            m_flow[i] = gauss_kronrod<float, 15>::integrate(
+                [this](float t) -> float { return m_model->evaluate(t); }, 0, m_times[i],
+                15, 1e-3);
+#else
+    // Float / double
+    #if defined(USING_SINGLE_FLOAT)
+            m_flow[i] = gauss_kronrod<float, 15>::integrate(
+                [this](double t) -> double { return m_model->evaluate(t); }, 0,
+                m_times[i], 8, 1e-6);
+    #elif defined(USING_DOUBLE_FLOAT) m_flow[i] =
+            gauss_kronrod<double, 31>::integrate(
+                [this](double t) -> double { return m_model->evaluate(t); }, 0,
+                m_times[i], 15, 1e-6);
+    #endif
+#endif
+        }
 
         if (m_flowDerivative[i] < m_flowDerivativeMin.second) {
             m_flowDerivativeMin.second = m_flowDerivative[i];
@@ -115,27 +133,27 @@ void GlottalFlow::setSampleCount(const int sampleCount) {
 
 int GlottalFlow::sampleCount() const { return m_sampleCount; }
 
-const double* GlottalFlow::t() const { return m_times.data(); }
+const Scalar* GlottalFlow::t() const { return m_times.data(); }
 
-const double* GlottalFlow::dg() const { return m_flowDerivative.data(); }
+const Scalar* GlottalFlow::dg() const { return m_flowDerivative.data(); }
 
-const double* GlottalFlow::g() const { return m_flow.data(); }
+const Scalar* GlottalFlow::g() const { return m_flow.data(); }
 
-const std::pair<double, double>& GlottalFlow::dgMin() const {
+const std::pair<Scalar, Scalar>& GlottalFlow::dgMin() const {
     return m_flowDerivativeMin;
 }
 
-const std::pair<double, double>& GlottalFlow::dgMax() const {
+const std::pair<Scalar, Scalar>& GlottalFlow::dgMax() const {
     return m_flowDerivativeMax;
 }
 
-double GlottalFlow::dgAmplitude() const { return m_flowDerivativeAmplitude; }
+Scalar GlottalFlow::dgAmplitude() const { return m_flowDerivativeAmplitude; }
 
-const std::pair<double, double>& GlottalFlow::gMin() const { return m_flowMin; }
+const std::pair<Scalar, Scalar>& GlottalFlow::gMin() const { return m_flowMin; }
 
-const std::pair<double, double>& GlottalFlow::gMax() const { return m_flowMax; }
+const std::pair<Scalar, Scalar>& GlottalFlow::gMax() const { return m_flowMax; }
 
-double GlottalFlow::gAmplitude() const { return m_flowAmplitude; }
+Scalar GlottalFlow::gAmplitude() const { return m_flowAmplitude; }
 
 std::weak_ptr<GlottalFlowModel> GlottalFlow::genModel() { return m_modelForGen; }
 
@@ -143,7 +161,7 @@ std::weak_ptr<const GlottalFlowModel> GlottalFlow::genModel() const {
     return m_modelForGen;
 }
 
-void GlottalFlow::paramChanged(const std::string& name, const double value) {
+void GlottalFlow::paramChanged(const std::string& name, const Scalar value) {
     m_model->updateParameterBounds(m_parameters);
     m_model->fitParameters(m_parameters);
     markDirty();

@@ -1,13 +1,14 @@
 #include "BufferedGenerator.h"
 
 #include <algorithm>
+#include <iostream>
 
 #include "audio/AudioTime.h"
 
 BufferedGenerator::BufferedGenerator(const AudioTime& time)
     : m_time(time),
       m_bufferLength(1024),
-      m_buffer(1024, 0.0),
+      m_buffer(1024, 0),
       m_fs(48000),
       m_fsChanged(false),
       m_isNormalized(true) {
@@ -28,72 +29,79 @@ void BufferedGenerator::setBufferLength(const int bufferLength) {
         std::unique_lock lock(m_mutex);
 
         m_bufferLength = bufferLength;
-        m_buffer.rresize(bufferLength);
         m_buffer.rset_capacity(bufferLength);
+        m_buffer.rresize(bufferLength);
     }
 }
 
-void BufferedGenerator::copyBufferTo(std::vector<double>& out) {
+uint64_t BufferedGenerator::copyBufferTo(std::vector<Scalar>& out) {
     std::shared_lock lock(m_mutex);
 
-    std::copy(m_buffer.begin(), m_buffer.end(), out.begin());
+    if (out.size() < m_bufferLength) {
+        std::copy(std::prev(m_buffer.end(), out.size()), m_buffer.end(), out.begin());
+    } else {
+        std::copy(m_buffer.begin(), m_buffer.end(), out.begin());
+    }
+    return m_time.timeSamples(0);
 }
 
-void BufferedGenerator::fillBuffer(std::vector<double>& out) {
+bool BufferedGenerator::hasEnoughSamplesSince(uint64_t time, int count) {
+    return (m_time.timeSamples(0) - time) >= count;
+}
+
+void BufferedGenerator::fillBuffer(std::vector<Scalar>& out) {
     // Backup if true it'll get set to false by fillInternalBuffer.
     const bool wasSampleRateChanged = m_fsChanged;
 
     m_internalBuffer.resize(out.size());
     fillInternalBuffer(m_internalBuffer);
 
-    if (m_isNormalized) {
-        if (wasSampleRateChanged) {
-            // Re-prepare the gain reduction stuff.
-            m_gainReductionComputer.prepare(m_fs);
-            m_lookAheadGainReduction.prepare(m_fs, out.size());
-            // Resize the delay buffer.
-            m_delaySamples = m_lookAheadGainReduction.getDelayInSamples();
-            m_delayBuffer.rresize(out.size() + m_delaySamples);
-            m_delayBuffer.rset_capacity(out.size() + m_delaySamples);
-            std::fill(m_delayBuffer.begin(),
-                      std::next(m_delayBuffer.begin(), m_delaySamples), 0.0);
-        }
-
-        m_delayBuffer.insert(m_delayBuffer.end(), m_internalBuffer.begin(),
-                             m_internalBuffer.end());
-
-        processGainReduction();
-
-        // Copy into output and ring buffer.
-        std::copy(m_delayBuffer.begin(), std::next(m_delayBuffer.begin(), out.size()),
-                  out.begin());
-    } else {
-        std::copy(m_internalBuffer.begin(), m_internalBuffer.end(), out.begin());
+    if (wasSampleRateChanged) {
+        // Re-prepare the gain reduction stuff.
+        m_gainReductionComputer.prepare(m_fs);
+        m_lookAheadGainReduction.prepare(m_fs, out.size());
+        // Resize the delay buffer.
+        m_delaySamples = m_lookAheadGainReduction.getDelayInSamples();
+        m_delayBuffer.rset_capacity(out.size() + m_delaySamples);
+        m_delayBuffer.rresize(out.size() + m_delaySamples);
+        std::fill(m_delayBuffer.begin(), std::next(m_delayBuffer.begin(), m_delaySamples),
+                  0.0_f);
     }
+
+    m_delayBuffer.insert(m_delayBuffer.end(), m_internalBuffer.begin(),
+                         m_internalBuffer.end());
+
+    if (m_isNormalized) {
+        processGainReduction();
+    }
+
+    // Copy into output and ring buffer.
+    std::copy(m_delayBuffer.begin(), std::next(m_delayBuffer.begin(), out.size()),
+              out.begin());
 
     m_mutex.lock();
     m_buffer.insert(m_buffer.end(), out.begin(), out.end());
     m_mutex.unlock();
 }
 
-void BufferedGenerator::setSampleRate(const double fs) {
+void BufferedGenerator::setSampleRate(const Scalar fs) {
     m_fs = fs;
     m_fsChanged = true;
 }
 
-double BufferedGenerator::sampleRate() const { return m_fs; }
+Scalar BufferedGenerator::sampleRate() const { return m_fs; }
 
 void BufferedGenerator::setNormalized(const bool isNorm) { m_isNormalized = isNorm; }
 
 bool BufferedGenerator::isNormalized() const { return m_isNormalized; }
 
-double BufferedGenerator::fs() const { return m_fs; }
+Scalar BufferedGenerator::fs() const { return m_fs; }
 
 bool BufferedGenerator::hasSampleRateChanged() const { return m_fsChanged; }
 
 void BufferedGenerator::ackSampleRateChange() { m_fsChanged = false; }
 
-double BufferedGenerator::time(const int off) const { return m_time.time(off); }
+Scalar BufferedGenerator::time(const int off) const { return m_time.time(off); }
 
 void BufferedGenerator::processGainReduction() {
     const int length = m_internalBuffer.size();
@@ -114,10 +122,10 @@ void BufferedGenerator::processGainReduction() {
     m_lookAheadGainReduction.process();
     m_lookAheadGainReduction.readSamples(m_sidechainSignal.data(), length);
 
-    const double makeUpGainInDecibels = m_gainReductionComputer.getMakeUpGain();
+    const float makeUpGainInDecibels = m_gainReductionComputer.getMakeUpGain();
     for (int i = 0; i < length; ++i) {
         m_sidechainSignal[i] =
-            pow(10, (makeUpGainInDecibels + m_sidechainSignal[i]) / 10);
+            powf(10.0f, (makeUpGainInDecibels + m_sidechainSignal[i]) / 10.0f);
     }
 
     for (int i = 0; i < length; ++i) {

@@ -25,17 +25,17 @@ class GlottalFlow {
     void setSampleCount(int sampleCount);
     int  sampleCount() const;
 
-    const double* t() const;
-    const double* dg() const;
-    const double* g() const;
+    const Scalar* t() const;
+    const Scalar* dg() const;
+    const Scalar* g() const;
 
-    const std::pair<double, double>& dgMin() const;
-    const std::pair<double, double>& dgMax() const;
-    double                           dgAmplitude() const;
+    const std::pair<Scalar, Scalar>& dgMin() const;
+    const std::pair<Scalar, Scalar>& dgMax() const;
+    Scalar                           dgAmplitude() const;
 
-    const std::pair<double, double>& gMin() const;
-    const std::pair<double, double>& gMax() const;
-    double                           gAmplitude() const;
+    const std::pair<Scalar, Scalar>& gMin() const;
+    const std::pair<Scalar, Scalar>& gMax() const;
+    Scalar                           gAmplitude() const;
 
     std::weak_ptr<GlottalFlowModel>       genModel();
     std::weak_ptr<const GlottalFlowModel> genModel() const;
@@ -52,7 +52,7 @@ class GlottalFlow {
         m_modelForGen = std::make_unique<T>();
     }
 
-    void paramChanged(const std::string& name, double value);
+    void paramChanged(const std::string& name, Scalar value);
     void usingRdChanged(bool usingRd);
 
     GlottalFlowParameters m_parameters;
@@ -66,15 +66,15 @@ class GlottalFlow {
     bool m_isDirty;
 
     int                       m_sampleCount;
-    std::vector<double>       m_times;
-    std::vector<double>       m_flowDerivative;
-    double                    m_flowDerivativeAmplitude;
-    std::pair<double, double> m_flowDerivativeMin;
-    std::pair<double, double> m_flowDerivativeMax;
-    std::vector<double>       m_flow;
-    double                    m_flowAmplitude;
-    std::pair<double, double> m_flowMin;
-    std::pair<double, double> m_flowMax;
+    std::vector<Scalar>       m_times;
+    std::vector<Scalar>       m_flowDerivative;
+    Scalar                    m_flowDerivativeAmplitude;
+    std::pair<Scalar, Scalar> m_flowDerivativeMin;
+    std::pair<Scalar, Scalar> m_flowDerivativeMax;
+    std::vector<Scalar>       m_flow;
+    Scalar                    m_flowAmplitude;
+    std::pair<Scalar, Scalar> m_flowMin;
+    std::pair<Scalar, Scalar> m_flowMax;
 };
 
 #endif  //  SOURCEMODEL__GLOTTAL_FLOW_H

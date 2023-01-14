@@ -2,17 +2,15 @@
 
 #include <algorithm>
 
-#include "math/utils.h"
-
-GlottalFlowParameter::GlottalFlowParameter(const std::string& name, const double initial,
-                                           const double min, const double max)
+GlottalFlowParameter::GlottalFlowParameter(const std::string& name, const Scalar initial,
+                                           const Scalar min, const Scalar max)
     : m_name(name), m_value(initial), m_min(min), m_max(max), m_isFixed(false) {}
 
 const std::string& GlottalFlowParameter::name() const { return m_name; }
 
-double GlottalFlowParameter::value() const { return m_value; }
+Scalar GlottalFlowParameter::value() const { return m_value; }
 
-void GlottalFlowParameter::setValue(double value) {
+void GlottalFlowParameter::setValue(Scalar value) {
     value = std::clamp(value, m_min, m_max);
     if (!fuzzyEquals(m_value, value)) {
         m_value = value;
@@ -21,9 +19,9 @@ void GlottalFlowParameter::setValue(double value) {
     }
 }
 
-double GlottalFlowParameter::min() const { return m_min; }
+Scalar GlottalFlowParameter::min() const { return m_min; }
 
-void GlottalFlowParameter::setMin(const double min) {
+void GlottalFlowParameter::setMin(const Scalar min) {
     if (!fuzzyEquals(m_min, min)) {
         m_min = min;
         m_isFixed = false;
@@ -31,9 +29,9 @@ void GlottalFlowParameter::setMin(const double min) {
     }
 }
 
-double GlottalFlowParameter::max() const { return m_max; }
+Scalar GlottalFlowParameter::max() const { return m_max; }
 
-void GlottalFlowParameter::setMax(const double max) {
+void GlottalFlowParameter::setMax(const Scalar max) {
     if (!fuzzyEquals(m_max, max)) {
         m_max = max;
         m_isFixed = false;
@@ -53,7 +51,7 @@ void GlottalFlowParameter::enforceBounds() {
 
 bool GlottalFlowParameter::isFixed() const { return m_isFixed; }
 
-void GlottalFlowParameter::setFixed(const double value) {
+void GlottalFlowParameter::setFixed(const Scalar value) {
     setMin(value);
     setMax(value);
     setValue(value);

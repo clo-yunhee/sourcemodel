@@ -3,7 +3,7 @@
 #include <cfloat>
 #include <cmath>
 
-inline ImPlotPoint GetDataAt(const double *xs, const double *ys, int offset, int idx) {
+inline ImPlotPoint GetDataAt(const Scalar *xs, const Scalar *ys, int offset, int idx) {
     return ImPlotPoint(xs[offset + idx], ys[offset + idx]);
 }
 
@@ -12,7 +12,7 @@ ImPlotPoint plotGetterLTTB(int idx, void *data) {
     return ds[idx];
 }
 
-ImVector<ImPlotPoint> downsampleLTTB(const double *xs, const double *ys, int size,
+ImVector<ImPlotPoint> downsampleLTTB(const Scalar *xs, const Scalar *ys, int size,
                                      int downsampleSize, int start, int end) {
     // Largest Triangle Three Buckets (LTTB) Downsampling Algorithm
     //  "Downsampling time series for visual representation" by Sveinn Steinarsson.
@@ -23,7 +23,7 @@ ImVector<ImPlotPoint> downsampleLTTB(const double *xs, const double *ys, int siz
     int rawSamplesCount = (end - start) + 1;
     if (rawSamplesCount > downsampleSize) {
         int    sampleIdxOffset = start;
-        double every = ((double)rawSamplesCount) / ((double)downsampleSize);
+        Scalar every = ((Scalar)rawSamplesCount) / ((Scalar)downsampleSize);
         int    aIndex = 0;
         // fill first sample
         Ds.resize(downsampleSize);
@@ -35,8 +35,8 @@ ImVector<ImPlotPoint> downsampleLTTB(const double *xs, const double *ys, int siz
             if (avgRangeEnd > downsampleSize) avgRangeEnd = downsampleSize;
 
             int    avgRangeLength = avgRangeEnd - avgRangeStart;
-            double avgX = 0.0;
-            double avgY = 0.0;
+            Scalar avgX = 0.0_f;
+            Scalar avgY = 0.0_f;
             for (; avgRangeStart < avgRangeEnd; ++avgRangeStart) {
                 ImPlotPoint sample = GetDataAt(xs, ys, sampleIdxOffset, avgRangeStart);
                 if (sample.y != NAN) {
@@ -44,24 +44,24 @@ ImVector<ImPlotPoint> downsampleLTTB(const double *xs, const double *ys, int siz
                     avgY += sample.y;
                 }
             }
-            avgX /= (double)avgRangeLength;
-            avgY /= (double)avgRangeLength;
+            avgX /= (Scalar)avgRangeLength;
+            avgY /= (Scalar)avgRangeLength;
 
             int rangeOffs = (int)(i * every) + 1;
             int rangeTo = (int)((i + 1) * every) + 1;
             if (rangeTo > downsampleSize) rangeTo = downsampleSize;
             ImPlotPoint samplePrev = GetDataAt(xs, ys, sampleIdxOffset, aIndex);
-            double      maxArea = -1.0;
+            Scalar      maxArea = -1.0_f;
             int         nextAIndex = rangeOffs;
             for (; rangeOffs < rangeTo; ++rangeOffs) {
                 ImPlotPoint sampleAtRangeOffs =
                     GetDataAt(xs, ys, sampleIdxOffset, rangeOffs);
                 if (sampleAtRangeOffs.y != NAN) {
-                    double area = fabs((samplePrev.x - avgX) *
-                                           (sampleAtRangeOffs.y - samplePrev.y) -
-                                       (samplePrev.x - sampleAtRangeOffs.x) *
-                                           (avgY - samplePrev.y)) /
-                                  2.0;
+                    Scalar area = std::abs((samplePrev.x - avgX) *
+                                               (sampleAtRangeOffs.y - samplePrev.y) -
+                                           (samplePrev.x - sampleAtRangeOffs.x) *
+                                               (avgY - samplePrev.y)) /
+                                  2.0_f;
                     if (area > maxArea) {
                         maxArea = area;
                         nextAIndex = rangeOffs;

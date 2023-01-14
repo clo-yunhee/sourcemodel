@@ -1,20 +1,56 @@
 #include "SVFBiquad.h"
 
-#include <complex>
 #include <iostream>
 
-void SVFBiquad::update(const double b0, const double b1, const double b2, const double a1,
-                       const double a2) {
+inline Scalar asqrt(Scalar x) { return std::sqrt(std::abs(x)); }
+
+inline Scalar rcsqrtdiv(const bool m1pos, const bool m2pos, const Scalar asm1,
+                        const Scalar asm2) {
+    // asm1 = sqrt|m1|
+    // asm2 = sqrt|m2|
+    // <-- real(sqrt(m1) / sqrt(m2))
+
+    // Real part is asm1/asm2 if same sign
+    //              0         otherwise
+
+    if (m1pos != m2pos) return 0;
+    return asm1 / asm2;
+}
+
+inline Scalar rcsqrtmul(const bool m1pos, const bool m2pos, const Scalar asm1,
+                        const Scalar asm2) {
+    // asm1 = sqrt|m1|
+    // asm2 = sqrt|m2|
+    // <-- real(sqrt(m1) * sqrt(m2))
+
+    // Real part is  asm1*asm2 if both pos
+    //              -asm1*asm2 if both neg
+    //              0          otherwise
+
+    if (m1pos != m2pos) return 0;
+    return (m1pos - !m1pos) * (asm1 * asm2);
+}
+
+void SVFBiquad::update(const Scalar b0, const Scalar b1, const Scalar b2, const Scalar a1,
+                       const Scalar a2) {
     using namespace std::complex_literals;
 
-    const double m1 = -1 - a1 - a2;
-    const double m2 = -1 + a1 - a2;
+    const Scalar m1 = -1 - a1 - a2;
+    const Scalar m2 = -1 + a1 - a2;
 
-    const std::complex<double> sm1 = sqrt(m1 + 0.0i);
-    const std::complex<double> sm2 = sqrt(m2 + 0.0i);
+    const bool   m1pos = (m1 > 0);
+    const bool   m2pos = (m2 > 0);
+    const Scalar asm1 = std::sqrt(std::abs(m1));
+    const Scalar asm2 = std::sqrt(std::abs(m2));
 
-    const double sm1div2 = (sm1 / sm2).real();
-    const double sm1mul2 = (sm1 * sm2).real();
+    // sm1div2 = sqrt(m1) / sqrt(m2)
+    // sm1mul2 = sqrt(m1) * sqrt(m2)
+    //  working out all the cases by hand is faster
+    //  because we're dealing with either pure real or pure imaginary numbers
+    //  so complex operations are overkill
+
+    const Scalar sm1div2 = rcsqrtdiv(m1pos, m2pos, asm1, asm2);
+    const Scalar sm1mul2 = rcsqrtmul(m1pos, m2pos, asm1, asm2);
 
     _g = sm1div2;
     _R = (a2 - 1) / sm1mul2;
@@ -27,6 +63,6 @@ void SVFBiquad::update(const double b0, const double b1, const double b2, const 
     _LP.update(_g, _R, SVFPiece::FltType_LOWPASS);
 }
 
-double SVFBiquad::tick(const double x) {
+Scalar SVFBiquad::tick(const Scalar x) {
     return _cHP * _HP.tick(x) + _cBP * _BP.tick(x) + _cLP * _LP.tick(x);
 }

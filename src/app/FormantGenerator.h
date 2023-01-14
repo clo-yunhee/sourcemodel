@@ -15,15 +15,15 @@ class FilterSpectrum;
 
 class FormantGenerator : public BufferedGenerator {
    public:
-    FormantGenerator(const AudioTime& time, const std::vector<double>& input);
+    FormantGenerator(const AudioTime& time, const std::vector<Scalar>& input);
 
     static constexpr int kNumFormants = 5;
 
-    double frequency(int k) const;
-    void   setFrequency(int k, double Fk);
+    Scalar frequency(int k) const;
+    void   setFrequency(int k, Scalar Fk);
 
-    double bandwidth(int k) const;
-    void   setBandwidth(int k, double Bk);
+    Scalar bandwidth(int k) const;
+    void   setBandwidth(int k, Scalar Bk);
 
     const FilterSpectrum& spectrum() const;
     FilterSpectrum&       spectrum();
@@ -31,7 +31,7 @@ class FormantGenerator : public BufferedGenerator {
     void updateSpectrumIfNeeded();
 
    protected:
-    void fillInternalBuffer(std::vector<double>& out) override;
+    void fillInternalBuffer(std::vector<Scalar>& out) override;
 
    private:
     void updateSpectrum();
@@ -40,8 +40,8 @@ class FormantGenerator : public BufferedGenerator {
     std::atomic_bool m_mustRegenSpectrum;
 
     // Target value for each parameter.
-    std::array<double, kNumFormants> m_targetF;
-    std::array<double, kNumFormants> m_targetB;
+    std::array<Scalar, kNumFormants> m_targetF;
+    std::array<Scalar, kNumFormants> m_targetB;
 
     // NFParam for each parameter.
     std::array<std::shared_ptr<nativeformat::param::Param>, kNumFormants> m_F;
@@ -50,10 +50,10 @@ class FormantGenerator : public BufferedGenerator {
     // One filter per formant.
     std::array<OneFormantFilter, kNumFormants> m_filters;
     // One extra filter for lip radiation.
-    double m_lipRadiationCoeff;   // leaking integrator coeff
-    double m_lipRadiationMemory;  // last input.
+    Scalar m_lipRadiationCoeff;   // leaking integrator coeff
+    Scalar m_lipRadiationMemory;  // last input.
 
-    const std::vector<double>& m_input;
+    const std::vector<Scalar>& m_input;
 };
 
 #endif  // SOURCEMODEL__FORMANT_GENERATOR_H

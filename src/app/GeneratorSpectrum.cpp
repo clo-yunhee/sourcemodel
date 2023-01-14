@@ -7,61 +7,51 @@
 #include "audio/BufferedGenerator.h"
 #include "math/utils.h"
 
-using namespace boost::math::double_constants;
+using namespace boost::math::constants;
 using boost::math::cos_pi;
 using boost::math::sin_pi;
 
 GeneratorSpectrum::GeneratorSpectrum(BufferedGenerator *initialGenerator)
-    : m_generator(initialGenerator) {
-    setTransformSize(8192);
-    setSmoothing(0.1);
-    setSampleRate(48000);
+    : m_generator(initialGenerator), m_updatePeriod(512) {
+    // Preallocate for max NFFT = 32768
+    constexpr int maxNfft = 32768;
+    constexpr int maxNbins = maxNfft / 2 + 1;
+    m_smoothedMags.reserve(maxNbins);
+    m_window.reserve(maxNfft);
+    m_values.reserve(maxNfft);
+    m_freqs.reserve(maxNbins);
+    m_mags.reserve(maxNbins);
+    m_spls.reserve(maxNbins);
 }
+
+int GeneratorSpectrum::transformSize() const { return m_dtft.sampleCount(); }
 
 void GeneratorSpectrum::setTransformSize(const int nfft) {
     if (m_nfft != nfft) {
         m_nfft = nfft;
         m_dtft.setSampleCount(nfft);
         m_generator->setBufferLength(nfft);
-        // Reconstruct window.
-        m_window.resize(m_nfft);
-        m_values.resize(m_nfft);
-        for (int i = 0; i < m_nfft; ++i) {
-            const double x = double(i) / double(m_nfft - 1);
-
-            // Flat top window
-            constexpr double a0 = 0.21557895;
-            constexpr double a1 = 0.41663158;
-            constexpr double a2 = 0.277263158;
-            constexpr double a3 = 0.083578947;
-            constexpr double a4 = 0.006947368;
-
-            m_window[i] = a0 - a1 * cos_pi(2 * x) + a2 * cos_pi(4 * x) -
-                          a3 * cos_pi(6 * x) + a4 * cos_pi(8 * x);
-        }
-        // Reconstruct frequency array.
-        m_freqs.resize(m_dtft.binCount());
-        m_mags.resize(m_dtft.binCount());
-        m_spls.resize(m_dtft.binCount());
-        for (int i = 0; i < m_dtft.binCount(); ++i) {
-            m_freqs[i] = (i * m_fs) / m_nfft;
-            m_mags[i] = 0;
-            m_spls[i] = -std::numeric_limits<double>::infinity();
-        }
+        constructWindow();
+        constructFrequencyArray();
+        constructSmoothingKernel();
     }
 }
 
-void GeneratorSpectrum::setSmoothing(const double alpha) { m_alpha = alpha; }
+Scalar GeneratorSpectrum::responseTime() const { return m_responseTime; }
 
-void GeneratorSpectrum::setSampleRate(const double fs) {
+void GeneratorSpectrum::setResponseTime(const Scalar responseTime) {
+    if (!fuzzyEquals(m_responseTime, responseTime)) {
+        m_responseTime = responseTime;
+        constructSmoothingKernel();
+    }
+}
+
+void GeneratorSpectrum::setSampleRate(const Scalar fs) {
     if (!fuzzyEquals(m_fs, fs)) {
         m_fs = fs;
-        // Reconstruct frequency array.
-        for (int i = 0; i < m_dtft.binCount(); ++i) {
-            m_freqs[i] = (i * m_fs) / m_nfft;
-            m_mags[i] = 0;
-            m_spls[i] = -std::numeric_limits<double>::infinity();
-        }
+        constructFrequencyArray();
+        constructSmoothingKernel();
+        m_lastUpdate = 0;
     }
 }
 
@@ -71,32 +61,67 @@ void GeneratorSpectrum::setGenerator(BufferedGenerator *generator) {
 }
 
 void GeneratorSpectrum::update() {
-    m_generator->copyBufferTo(m_values);
+    if (m_generator->hasEnoughSamplesSince(m_lastUpdate, m_updatePeriod)) {
+        m_lastUpdate = m_generator->copyBufferTo(m_values);
 
-    for (int i = 0; i < m_nfft; ++i) {
-        m_values[i] *= m_window[i];
-    }
+        for (int i = 0; i < m_nfft; ++i) {
+            m_values[i] *= m_window[i];
+        }
 
-    m_dtft.updateSamples(m_values.data(), m_nfft);
+        m_dtft.updateSamples(m_values.data(), m_nfft);
 
-    for (int i = 0; i < m_dtft.binCount(); ++i) {
-        m_mags[i] = m_dtft.magnitude()[i];
+        // Copy magnitude.
+        for (int i = 0; i < m_binCount; ++i) {
+            m_mags[i] = m_dtft.magnitude()[i];
+        }
 
-        // Calculate SPL.
-        const double newSpl = 10 * log10(m_mags[i]);
+        // Apply smoothing.
+        for (int i = 0; i < m_binCount; ++i) {
+            m_smoothedMags[i] = m_alpha * m_mags[i] + (1 - m_alpha) * m_smoothedMags[i];
+        }
 
-        if (std::isinf(m_spls[i])) {
-            m_spls[i] = newSpl;
-        } else {
-            m_spls[i] = m_alpha * newSpl + (1 - m_alpha) * m_spls[i];
+        // Calculate SPL in dB.
+        for (int i = 0; i < m_binCount; ++i) {
+            m_spls[i] = 10 * std::log10(m_smoothedMags[i]);
         }
     }
 }
 
-const double *GeneratorSpectrum::frequencies() const { return m_freqs.data(); }
+const Scalar *GeneratorSpectrum::frequencies() const { return m_freqs.data(); }
 
-const double *GeneratorSpectrum::magnitudes() const { return m_mags.data(); }
+const Scalar *GeneratorSpectrum::magnitudes() const { return m_smoothedMags.data(); }
 
-const double *GeneratorSpectrum::magnitudesDb() const { return m_spls.data(); }
+const Scalar *GeneratorSpectrum::magnitudesDb() const { return m_spls.data(); }
 
 int GeneratorSpectrum::binCount() const { return m_dtft.binCount(); }
+
+void GeneratorSpectrum::constructWindow() {
+    m_window.resize(m_nfft);
+    m_values.resize(m_nfft);
+
+    m_window = windows::chebwin<Scalar>(m_nfft, 320, true);
+}
+
+void GeneratorSpectrum::constructFrequencyArray() {
+    m_binCount = m_dtft.binCount();
+    m_freqs.resize(m_binCount);
+    m_mags.resize(m_binCount);
+    m_spls.resize(m_binCount);
+    m_smoothedMags.resize(m_binCount);
+    for (int i = 0; i < m_binCount; ++i) {
+        m_freqs[i] = (i * m_fs) / m_nfft;
+        m_mags[i] = 0;
+        m_spls[i] = -std::numeric_limits<Scalar>::infinity();
+        m_smoothedMags[i] = 0;
+    }
+}
+
+void GeneratorSpectrum::constructSmoothingKernel() {
+    // An exponential smoothing filter is a simple IIR filter
+    // s_i = alpha*x_i + (1-alpha)*s_{i-1}
+    // We compute alpha so that the N most recent samples represent w% of the output
+    constexpr Scalar w = 0.65_f;
+    const int        n = (m_responseTime * m_fs) / m_nfft;
+    const int        N = m_updatePeriod;
+    m_alpha = 1.0_f - std::pow(1.0_f - w, 1.0_f / (n + 1));
+}

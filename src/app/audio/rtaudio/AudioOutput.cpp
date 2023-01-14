@@ -2,6 +2,13 @@
 
 #include <iostream>
 
+inline void atomic_add(std::atomic<Scalar> &ad, const Scalar plus) {
+    Scalar desired, expected = ad.load(std::memory_order_relaxed);
+    do {
+        desired = expected + plus;
+    } while (!ad.compare_exchange_weak(expected, desired));  // seq_cst
+}
+
 AudioOutput::AudioOutput(RtAudio &audio) : m_audio(audio), m_timeOffset(0), m_time(0) {
     m_device = audio.getDeviceInfo(audio.getDefaultOutputDevice());
 }
@@ -48,7 +55,8 @@ void AudioOutput::stopPlaying() {
     m_audio.stopStream();
 
     // Set the stop time as the new offset.
-    m_timeOffset += m_time / (double)m_audio.getStreamSampleRate();
+    atomic_add(m_timeOffset, m_time / (Scalar)m_audio.getStreamSampleRate());
+    // m_timeOffset += m_time / (Scalar)m_audio.getStreamSampleRate();
     m_time = 0;
 
     std::cout << "AudioOutput: playback stopped" << std::endl;
@@ -56,7 +64,7 @@ void AudioOutput::stopPlaying() {
 
 bool AudioOutput::isPlaying() const { return m_audio.isStreamRunning(); }
 
-double AudioOutput::sampleRate() const {
+Scalar AudioOutput::sampleRate() const {
     if (m_audio.isStreamOpen()) {
         return m_audio.getStreamSampleRate();
     } else {
@@ -64,8 +72,12 @@ double AudioOutput::sampleRate() const {
     }
 }
 
-double AudioOutput::time(const int sampleOffset) const {
-    return m_timeOffset + (m_time + sampleOffset) / sampleRate();
+Scalar AudioOutput::time(const int sampleOffset) const {
+    return m_timeOffset + (sampleOffset + m_time) / sampleRate();
+}
+
+uint64_t AudioOutput::timeSamples(const int sampleOffset) const {
+    return m_timeOffset * sampleRate() + sampleOffset + m_time;
 }
 
 void AudioOutput::openStream() {
@@ -77,10 +89,9 @@ void AudioOutput::openStream() {
     options.flags = RTAUDIO_NONINTERLEAVED;
 
     unsigned int bufferFrames{1024};
-    m_audio.openStream(&parameters, nullptr, RTAUDIO_FLOAT64,
+    m_audio.openStream(&parameters, nullptr, RTAUDIO_FLOAT32,
                        m_device.preferredSampleRate, &bufferFrames, &streamCallback, this,
                        &options);
-    m_buffer.resize(bufferFrames);
 }
 
 void AudioOutput::closeStream() { m_audio.closeStream(); }
@@ -89,18 +100,20 @@ int AudioOutput::streamCallback(void *outputBuffer, void *, unsigned int nBuffer
                                 double streamTime, RtAudioStreamStatus status,
                                 void *userData) {
     auto self = static_cast<AudioOutput *>(userData);
-    auto output = static_cast<double *>(outputBuffer);
+    auto output = static_cast<float *>(outputBuffer);
 
     const int channels = self->m_device.outputChannels;
 
+    self->m_buffer.resize(nBufferFrames);
     bool returnedSomething = self->m_bufferCallback(self->m_buffer);
     if (returnedSomething) {
         for (int i = 0; i < nBufferFrames; ++i) {
             self->m_buffer[i] /= channels;
         }
-        for (int c = 0; c < channels; ++c) {
-            std::copy(self->m_buffer.begin(), self->m_buffer.end(),
-                      &output[c * nBufferFrames]);
+        std::transform(self->m_buffer.begin(), self->m_buffer.end(), &output[0],
+                       [](const Scalar x) { return (float)x; });
+        for (int c = 1; c < channels; ++c) {
+            std::copy(&output[0], &output[nBufferFrames], &output[c * nBufferFrames]);
         }
     }
 

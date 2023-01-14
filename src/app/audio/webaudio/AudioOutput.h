@@ -12,7 +12,7 @@
 
 class AudioOutput : public AudioTime {
    public:
-    using BufferCallback = std::function<bool(std::vector<double> &)>;
+    using BufferCallback = std::function<bool(std::vector<Scalar> &)>;
 
     AudioOutput();
     ~AudioOutput();
@@ -24,18 +24,20 @@ class AudioOutput : public AudioTime {
 
     bool isPlaying() const;
 
-    double sampleRate() const;
-    double time(int sampleOffset) const override;
+    Scalar   sampleRate() const;
+    Scalar   time(int sampleOffset) const override;
+    uint64_t timeSamples(int sampleOffset) const override;
 
    private:
     static void audioCallback(void *userdata, Uint8 *stream, int len);
 
     SDL_AudioDeviceID m_audioDevice;
-    double            m_sampleRate;
+    Scalar            m_sampleRate;
 
     bool m_isPlaying;
 
-    BufferCallback m_bufferCallback;
+    BufferCallback      m_bufferCallback;
+    std::vector<Scalar> m_buffer;
 
     std::atomic_uint64_t m_time;
 };

@@ -185,6 +185,19 @@ static void calculateAlpha(Params& p) {
 
 static inline double oct2double(const Scalar x) { return x.convert_to<double>(); }
 
+struct _ff {
+    _ff(float v) : _v(v) {}
+    float _v;
+};
+
+std::ostream& operator<<(std::ostream& os, const _ff& f) {
+    if (f._v == (int)f._v) {
+        return os << f._v << ".0f";
+    } else {
+        return os << f._v << "f";
+    }
+}
+
 int main(int argc, char** argv) {
     Params p;
     p.T0 = 1;
@@ -226,36 +239,66 @@ int main(int argc, char** argv) {
 
     std::cout << "Finished precomputing, priting to file.\n";
 
-    std::ofstream file("precomputed_Rd.cpp", std::ios_base::trunc);
+    std::ofstream file("LF_precomputed_Rd_double.inc.h", std::ios_base::trunc);
 
     file << std::setprecision(std::numeric_limits<double>::max_digits10);
 
-    file << "#include <utility>\n"
-         << "#include <vector>\n"
-         << "\n"
-         << "double Rd_min = " << Rdmin << ";\n"
-         << "double Rd_max = " << Rdmax << ";\n"
-         << "double Rd_step = " << deltaRd << ";\n"
+    file << "inline constexpr double Rd_min = " << Rdmin << ";\n"
+         << "inline constexpr double Rd_max = " << Rdmax << ";\n"
+         << "inline constexpr double Rd_step = " << deltaRd << ";\n"
          << "\n"
          << "// (Te, Tp, Ta, alpha, epsilon)\n"
-         << "std::vector<std::tuple<double, double, double, double, double>> Rd_table{\n";
+         << "inline constexpr std::array<std::tuple<double, double, double, double, "
+            "double>, "
+         << results.size() << ">\n    Rd_table{{\n";
 
     for (const auto& r : results) {
-        file << "    {\n"
-             << "        // Rd = " << r.Rd << "\n"
-             << "        " << r.Te << ",\n"
-             << "        " << r.Tp << ",\n"
-             << "        " << r.Ta << ",\n"
-             << "        " << r.alpha << ",\n";
+        file << "        {\n"
+             << "            // Rd = " << r.Rd << "\n"
+             << "            " << r.Te << ",\n"
+             << "            " << r.Tp << ",\n"
+             << "            " << r.Ta << ",\n"
+             << "            " << r.alpha << ",\n";
         if (std::isinf(r.epsilon)) {
-            file << "        std::numeric_limits<double>::infinity(),\n";
+            file << "            std::numeric_limits<double>::infinity(),\n";
         } else {
-            file << "        " << r.epsilon << ",\n";
+            file << "            " << r.epsilon << ",\n";
         }
-        file << "    },\n";
+        file << "        },\n";
     }
 
-    file << "};\n";
+    file << "    }};\n";
+    file.close();
+
+    file.open("LF_precomputed_Rd_float.inc.h", std::ios_base::trunc);
+
+    file << std::setprecision(std::numeric_limits<float>::max_digits10);
+
+    file << "inline constexpr float Rd_min = " << Rdmin << ";\n"
+         << "inline constexpr float Rd_max = " << Rdmax << ";\n"
+         << "inline constexpr float Rd_step = " << deltaRd << ";\n"
+         << "\n"
+         << "// (Te, Tp, Ta, alpha, epsilon)\n"
+         << "inline constexpr std::array<std::tuple<float, float, float, float, "
+            "float>, "
+         << results.size() << ">\n    Rd_table{{\n";
+
+    for (const auto& r : results) {
+        file << "        {\n"
+             << "            // Rd = " << r.Rd << "\n"
+             << "            " << _ff(r.Te) << ",\n"
+             << "            " << _ff(r.Tp) << ",\n"
+             << "            " << _ff(r.Ta) << ",\n"
+             << "            " << _ff(r.alpha) << ",\n";
+        if (std::isinf(r.epsilon)) {
+            file << "            std::numeric_limits<float>::infinity(),\n";
+        } else {
+            file << "            " << _ff(r.epsilon) << ",\n";
+        }
+        file << "        },\n";
+    }
+
+    file << "    }};\n";
     file.close();
 
     return 0;

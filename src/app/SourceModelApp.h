@@ -10,6 +10,7 @@
 #include "GeneratorSpectrum.h"
 #include "GlottalFlow.h"
 #include "SourceGenerator.h"
+#include "math/FrequencyScale.h"
 
 #ifdef USING_RTAUDIO
     #include "audio/rtaudio/AudioDevices.h"
@@ -21,6 +22,10 @@
 #endif
 
 #include <implot.h>
+
+#include <boost/dynamic_bitset.hpp>
+
+class ImPlotAxis;
 
 class SourceModelApp : public Application {
    public:
@@ -43,11 +48,17 @@ class SourceModelApp : public Application {
                                        float gLabelW);
 
     bool ScrollableDrag(const char* fieldLabel, float labelW, const char* fieldId,
-                        float fieldW, double* value, double min, double max,
+                        float fieldW, Scalar* value, Scalar min, Scalar max,
                         const char* format, bool autoScale = true,
                         int manualPrecision = 1);
 
     void updateDownscaledPlot(int count, int start, int end);
+    void setupPlotFrequencyTicks();
+    void setupPlotFrequencyTicksLinear(const ImPlotAxis& axis);
+    void setupPlotFrequencyTicksNonlinear(const ImPlotAxis& axis);
+
+    bool canInsertLabel(double value, const char* label, const ImPlotAxis& axis,
+                        const float pixelMin, const float pixelMax);
 
 #ifdef USING_RTAUDIO
     void setAudioOutputDevice(const RtAudio::DeviceInfo& deviceInfo);
@@ -74,12 +85,13 @@ class SourceModelApp : public Application {
     bool                     m_doOpenPopupNextFrame;
     std::vector<std::string> m_messages;
 
-    GlottalFlow         m_glottalFlow;
-    SourceGenerator     m_sourceGenerator;
-    GeneratorSpectrum   m_sourceSpectrum;
+    GlottalFlow       m_glottalFlow;
+    SourceGenerator   m_sourceGenerator;
+    GeneratorSpectrum m_sourceSpectrum;
+
     FormantGenerator    m_formantGenerator;
     GeneratorSpectrum   m_formantSpectrum;
-    std::vector<double> m_intermediateAudioBuffer;
+    std::vector<Scalar> m_intermediateAudioBuffer;
 
     int                   m_downsampledCount;
     int                   m_downsampledStart;
@@ -87,9 +99,19 @@ class SourceModelApp : public Application {
     ImVector<ImPlotPoint> m_gDownsampled;
     ImVector<ImPlotPoint> m_dgDownsampled;
 
-    bool m_showAdvancedSourceParams;
-    bool m_doBypassFilter;
-    bool m_doNormalizeFlowPlot;
+    // TODO: add
+    std::vector<double>      m_majorTicks;
+    std::vector<std::string> m_majorTickLabels;
+    std::vector<double>      m_minorTicks;
+    std::vector<std::string> m_minorTickLabels;
+    std::vector<double>      m_minorMinorTicks;
+    std::vector<std::string> m_minorMinorTickLabels;
+    boost::dynamic_bitset<>  m_tickBits;
+
+    bool           m_showAdvancedSourceParams;
+    bool           m_doBypassFilter;
+    bool           m_doNormalizeFlowPlot;
+    FrequencyScale m_spectrumFrequencyScale;
 };
 
 #endif  // SOURCEMODEL__SOURCEMODELAPP_H

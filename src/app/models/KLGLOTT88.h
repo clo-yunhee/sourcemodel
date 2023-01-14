@@ -8,13 +8,16 @@ class KLGLOTT88 : public GlottalFlowModel {
    public:
     ~KLGLOTT88() override {}
 
-    double evaluate(double t) const override;
+    bool hasAntiderivative() const override { return true; }
+
+    Scalar evaluate(Scalar t) const override;
+    Scalar evaluateAntiderivative(Scalar t) const override;
 
     void fitParameters(const GlottalFlowParameters& params) override;
     void updateParameterBounds(GlottalFlowParameters& params) override;
 
    private:
-    double m_Oq;
+    Scalar m_Oq;
 };
 }  // namespace models
 

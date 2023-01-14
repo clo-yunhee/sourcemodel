@@ -1,10 +1,14 @@
 add_library(embed INTERFACE)
 target_include_directories(embed INTERFACE ${CMAKE_CURRENT_LIST_DIR}/include)
 
-if(MSVC)
-    target_compile_definitions(embed INTERFACE "EMBED_ARRAY=0")
+if(DEFINED EMBED_ARRAY) # It will be defined when cross-compiling
+    target_compile_definitions(embed INTERFACE "EMBED_ARRAY=${EMBED_ARRAY}")
 else()
-    target_compile_definitions(embed INTERFACE "EMBED_ARRAY=1")
+    if(MSVC)
+        target_compile_definitions(embed INTERFACE "EMBED_ARRAY=0")
+    else()
+        target_compile_definitions(embed INTERFACE "EMBED_ARRAY=1")
+    endif()
 endif()
 
 #embed_cli: if cross compiling needs to be built as a host executable
@@ -16,6 +20,7 @@ if(CMAKE_CROSSCOMPILING)
         BINARY_DIR ${CMAKE_CURRENT_BINARY_DIR}
         UPDATE_DISCONNECTED TRUE
         DOWNLOAD_COMMAND ""
+        CMAKE_ARGS -DEMBED_ARRAY=0
         BUILD_COMMAND ${CMAKE_COMMAND} --build ${CMAKE_CURRENT_BINARY_DIR} --target embed_cli
         INSTALL_COMMAND ""
     )
@@ -55,7 +60,7 @@ function(add_embedded_file _target _input_file _output_file _variable)
     target_sources(${_target} PRIVATE "${_actual_output_file}")
     set_source_files_properties(${_actual_output_file} TARGET_DIRECTORY ${_target} PROPERTIES GENERATED TRUE)
     target_include_directories(${_target} PRIVATE ${CMAKE_CURRENT_BINARY_DIR}/include)
-    target_link_libraries(${_target} PRIVATE embed)
+    target_link_libraries(${_target} PUBLIC embed) # PUBLIC dep to share compile defs
     add_dependencies(${_target} embed_cli)
 endfunction()
 

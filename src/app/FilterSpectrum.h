@@ -5,35 +5,36 @@
 #include <vector>
 
 #include "math/DTFT.h"
+#include "math/utils.h"
 
 class FilterSpectrum {
    public:
     FilterSpectrum();
 
     void setSize(int nfft);
-    void setSampleRate(double fs);
+    void setSampleRate(Scalar fs);
 
-    void update(const std::vector<std::array<double, 6>>& sos);
+    void update(const std::vector<std::array<Scalar, 6>>& sos);
 
-    const double* frequencies() const;
-    const double* magnitudes() const;
-    const double* magnitudesDb() const;
+    const Scalar* frequencies() const;
+    const Scalar* magnitudes() const;
+    const Scalar* magnitudesDb() const;
     int           binCount() const;
 
    private:
-    void calculateOneSection(const std::array<double, 6>& section);
+    void calculateOneSection(const std::array<Scalar, 6>& section);
 
     int    m_nfft;
     int    m_binCount;
-    double m_fs;
+    Scalar m_fs;
 
-    std::vector<double> m_freqs;
-    std::vector<double> m_sectionMag;
-    std::vector<double> m_mags;
-    std::vector<double> m_spls;
+    std::vector<Scalar> m_freqs;
+    std::vector<Scalar> m_sectionMag;
+    std::vector<Scalar> m_mags;
+    std::vector<Scalar> m_spls;
 
-    std::vector<double> m_data;
-    DTFT                m_dtft;
+    std::vector<Scalar> m_data;
+    DTFT<Scalar>        m_dtft;
 };
 
 #endif  // SOURCEMODEL__FILTER_SPECTRUM_H

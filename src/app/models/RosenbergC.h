@@ -8,15 +8,18 @@ class RosenbergC : public GlottalFlowModel {
    public:
     ~RosenbergC() override {}
 
-    double evaluate(double t) const override;
+    bool hasAntiderivative() const override { return true; }
+
+    Scalar evaluate(Scalar t) const override;
+    Scalar evaluateAntiderivative(Scalar t) const override;
 
     void fitParameters(const GlottalFlowParameters& params) override;
     void updateParameterBounds(GlottalFlowParameters& params) override;
 
    private:
-    double m_A;
-    double m_Tp;
-    double m_Tn;
+    Scalar m_A;
+    Scalar m_Tp;
+    Scalar m_Tn;
 };
 }  // namespace models
 

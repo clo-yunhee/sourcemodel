@@ -3,7 +3,7 @@
 
 #include <complex>
 
-using dcomplex = std::complex<double>;
+#include "math/utils.h"
 
 /* Discrete-time generic SVF realized with TDF-II */
 
@@ -17,17 +17,17 @@ class SVFPiece {
 
     SVFPiece();
 
-    void update(double g, double R, FltType type);
+    void update(Scalar g, Scalar R, FltType type);
 
-    double tick(double x);
+    Scalar tick(Scalar x);
 
    private:
     FltType _type;
 
-    double _g;
-    double _R;
-    double _z1;
-    double _z2;
+    Scalar _g;
+    Scalar _R;
+    Scalar _z1;
+    Scalar _z2;
 };
 
 #endif  // SVF_PIECE_H

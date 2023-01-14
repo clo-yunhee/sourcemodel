@@ -5,32 +5,34 @@
 #include <sigslot/signal.hpp>
 #include <string>
 
+#include "math/utils.h"
+
 class GlottalFlowParameter {
    public:
-    GlottalFlowParameter(const std::string& name, double initial, double min, double max);
+    GlottalFlowParameter(const std::string& name, Scalar initial, Scalar min, Scalar max);
 
     const std::string& name() const;
 
-    double                                      value() const;
-    void                                        setValue(double);
-    sigslot::signal<const std::string&, double> valueChanged;
+    Scalar                                      value() const;
+    void                                        setValue(Scalar);
+    sigslot::signal<const std::string&, Scalar> valueChanged;
 
-    double min() const;
-    void   setMin(double);
+    Scalar min() const;
+    void   setMin(Scalar);
 
-    double max() const;
-    void   setMax(double);
+    Scalar max() const;
+    void   setMax(Scalar);
 
     bool isFixed() const;
-    void setFixed(double);
+    void setFixed(Scalar);
 
    private:
     void enforceBounds();
 
     std::string m_name;
-    double      m_value;
-    double      m_min;
-    double      m_max;
+    Scalar      m_value;
+    Scalar      m_min;
+    Scalar      m_max;
 
     bool m_isFixed;
 };

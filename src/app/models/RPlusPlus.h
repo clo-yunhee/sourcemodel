@@ -8,20 +8,26 @@ class RPlusPlus : public GlottalFlowModel {
    public:
     ~RPlusPlus() override {}
 
-    double evaluate(double t) const override;
+    bool hasAntiderivative() const override { return true; }
+
+    Scalar evaluate(Scalar t) const override;
+    Scalar evaluateAntiderivative(Scalar t) const override;
 
     void fitParameters(const GlottalFlowParameters& params) override;
     void updateParameterBounds(GlottalFlowParameters& params) override;
 
    private:
-    double m_K;
-    double m_Te;
-    double m_Tp;
-    double m_Ta;
+    Scalar m_K;
+    Scalar m_Te;
+    Scalar m_Tp;
+    Scalar m_Ta;
 
-    double m_Tx;
+    Scalar m_Tx;
 
-    double m_dgTe;
+    Scalar m_dgTe;
+    Scalar m_gTe;
+
+    Scalar m_expT0TeTa;
 };
 }  // namespace models
 

@@ -4,6 +4,8 @@
 #include <vector>
 
 #include "math/DTFT.h"
+#include "math/utils.h"
+#include "math/windows.h"
 
 class BufferedGenerator;
 
@@ -11,34 +13,49 @@ class GeneratorSpectrum {
    public:
     GeneratorSpectrum(BufferedGenerator* initialGenerator);
 
+    int  transformSize() const;
     void setTransformSize(int nfft);
-    void setSmoothing(double alpha);
-    void setSampleRate(double fs);
+
+    void setSampleRate(Scalar fs);
+
+    Scalar responseTime() const;
+    void   setResponseTime(Scalar responseTime);
 
     void setGenerator(BufferedGenerator* generator);
 
     void update();
 
-    const double* frequencies() const;
-    const double* magnitudes() const;
-    const double* magnitudesDb() const;
+    const Scalar* frequencies() const;
+    const Scalar* magnitudes() const;
+    const Scalar* magnitudesDb() const;
     int           binCount() const;
 
    private:
+    void constructWindow();
+    void constructFrequencyArray();
+    void constructSmoothingKernel();
+
     int    m_nfft;
-    double m_alpha;
-    double m_fs;
+    Scalar m_fs;
+    Scalar m_responseTime;
 
     BufferedGenerator* m_generator;
+    uint64_t           m_lastUpdate;
+    int                m_updatePeriod;
 
-    std::vector<double> m_window;
-    std::vector<double> m_values;
+    // Smoothing kernel.
+    Scalar              m_alpha;
+    std::vector<Scalar> m_smoothedMags;
 
-    std::vector<double> m_freqs;
-    std::vector<double> m_mags;
-    std::vector<double> m_spls;
+    std::vector<Scalar> m_window;
+    std::vector<Scalar> m_values;
 
-    DTFT m_dtft;
+    int                 m_binCount;
+    std::vector<Scalar> m_freqs;
+    std::vector<Scalar> m_mags;
+    std::vector<Scalar> m_spls;
+
+    DTFT<Scalar> m_dtft;
 };
 
 #endif  // SOURCEMODEL__GENERATOR_SPECTRUM_H

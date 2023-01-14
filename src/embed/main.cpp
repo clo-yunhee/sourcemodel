@@ -29,7 +29,8 @@ static constexpr auto arrayEnd = "};";
 static constexpr auto strBegin = "inline constexpr const char ";
 
 static constexpr auto definition1 = "inline constexpr auto ";
-static constexpr auto definition2 = " = detail::makeEmbedded<\n";
+static constexpr auto definition2Arr = " = detail::array::makeEmbedded<\n";
+static constexpr auto definition2Str = " = detail::string::makeEmbedded<\n";
 static constexpr auto definition3 = ">();";
 
 static constexpr auto dataPrefix = "data::";
@@ -246,13 +247,13 @@ int main(int argc, char* argv[]) {
     outfile << '\n'
             << line::arrayEnd << '\n'
             << line::namespaceDataEnd << "\n\n"
-            << line::definition1 << variableName << line::definition2 << "  "
+            << line::definition1 << variableName << line::definition2Arr << "  "
             << line::dataPrefix << byteCountVariableName << ", " << line::dataPrefix
             << u32CountVariableName << ", " << line::dataPrefix << u32ArrVariableName;
 #else
     outfile << ";\n"
             << line::namespaceDataEnd << "\n\n"
-            << line::definition1 << variableName << line::definition2 << " "
+            << line::definition1 << variableName << line::definition2Str << " "
             << line::dataPrefix << byteCountVariableName << ", " << line::dataPrefix
             << dataVariableName;
 #endif

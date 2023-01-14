@@ -85,7 +85,7 @@ void GainReductionComputer::computeGainInDecibelsFromSidechainSignal(
 
     for (int i = 0; i < numSamples; ++i) {
         // convert sample to decibels
-        const float levelInDecibels = 20.0f * std::log10(abs(sideChainSignal[i]));
+        const float levelInDecibels = 20.0f * std::log10(std::abs(sideChainSignal[i]));
 
         if (levelInDecibels > maxInputLevel) maxInputLevel = levelInDecibels;
 

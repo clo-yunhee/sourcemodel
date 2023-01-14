@@ -6,52 +6,52 @@
 #include <boost/math/special_functions/sin_pi.hpp>
 #include <iostream>
 
-using namespace boost::math::double_constants;
+using namespace boost::math::constants;
 using boost::math::cos_pi;
 using boost::math::sin_pi;
 
 Butterworth::Butterworth() {}
 
-bool Butterworth::loPass(const double fs, const double fc, const int order) {
+bool Butterworth::loPass(const Scalar fs, const Scalar fc, const int order) {
     return coefficients(kLoPass, fs, fc, fc, order);
 }
 
-bool Butterworth::hiPass(const double fs, const double fc, const int order) {
+bool Butterworth::hiPass(const Scalar fs, const Scalar fc, const int order) {
     return coefficients(kHiPass, fs, fc, fc, order);
 }
 
-bool Butterworth::bandPass(const double fs, const double f1c, const double f2c,
+bool Butterworth::bandPass(const Scalar fs, const Scalar f1c, const Scalar f2c,
                            const int order) {
     return coefficients(kBandPass, fs, f1c, f2c, order);
 }
 
-bool Butterworth::bandStop(const double fs, const double f1c, const double f2c,
+bool Butterworth::bandStop(const Scalar fs, const Scalar f1c, const Scalar f2c,
                            const int order) {
     return coefficients(kBandStop, fs, f1c, f2c, order);
 }
 
-bool Butterworth::coefficients(const FilterType filterType, const double fs,
-                               const double _f1c, const double _f2c,
+bool Butterworth::coefficients(const FilterType filterType, const Scalar fs,
+                               const Scalar _f1c, const Scalar _f2c,
                                const int filterOrder) {
     // ** Pre-warping
-    double f1c = 2 * tan(pi * _f1c / fs);
-    double f2c = 2 * tan(pi * _f2c / fs);
+    Scalar f1c = 2 * std::tan(pi<Scalar>() * _f1c / fs);
+    Scalar f2c = 2 * std::tan(pi<Scalar>() * _f2c / fs);
 
     // ** Design basic S-plane poles-only analogue LP prototype
     std::vector<dcomplex> poles(2 * filterOrder);
 
     for (int k = 0; k < filterOrder; ++k) {
-        const double arg = double(2 * k + 1) / double(2 * filterOrder);
-        const double real = -sin_pi(arg);
-        const double imag = cos_pi(arg);
+        const Scalar arg = Scalar(2 * k + 1) / Scalar(2 * filterOrder);
+        const Scalar real = -sin_pi(arg);
+        const Scalar imag = cos_pi(arg);
         poles[2 * k].real(real);
         poles[2 * k].imag(imag);
         poles[2 * k + 1].real(real);
         poles[2 * k + 1].imag(-imag);  // Conjugate.
     }
 
-    std::vector<dcomplex> zeros(0);    // Butterworth LP prototype has no zeros.
-    double                gain = 1.0;  // Always 1 for the Butterworth prototype lowpass.
+    std::vector<dcomplex> zeros(0);  // Butterworth LP prototype has no zeros.
+    Scalar gain = 1.0_f;             // Always 1 for the Butterworth prototype lowpass.
 
     // ** Convert prototype to target filter type (LP/HP/BP/BS) - S-plane
 
@@ -87,7 +87,7 @@ bool Butterworth::coefficients(const FilterType filterType, const double fs,
     }
 
     // ** Map zeros & poles from S-plane to Z-plane
-    const double preBltGain = gain;
+    const Scalar preBltGain = gain;
 
     for (auto& z : zeros) {
         gain /= bilinear(z);
@@ -114,13 +114,13 @@ bool Butterworth::coefficients(const FilterType filterType, const double fs,
         }
     }
 
-    m_zi.resize(m_sos.size(), {0.0, 0.0});
+    m_zi.resize(m_sos.size(), {0, 0});
 
     return true;
 }
 
-void Butterworth::convertToLoPass(const double Wc, std::vector<dcomplex>& zeros,
-                                  std::vector<dcomplex>& poles, double& gain) {
+void Butterworth::convertToLoPass(const Scalar Wc, std::vector<dcomplex>& zeros,
+                                  std::vector<dcomplex>& poles, Scalar& gain) {
     gain *= pow(Wc, poles.size());
 
     zeros.resize(0);         // Poles only
@@ -129,13 +129,13 @@ void Butterworth::convertToLoPass(const double Wc, std::vector<dcomplex>& zeros,
     }
 }
 
-void Butterworth::convertToHiPass(const double Wc, std::vector<dcomplex>& zeros,
-                                  std::vector<dcomplex>& poles, double& gain) {
+void Butterworth::convertToHiPass(const Scalar Wc, std::vector<dcomplex>& zeros,
+                                  std::vector<dcomplex>& poles, Scalar& gain) {
     // : hp_S = Wc / lp_S
 
     // Calculate gain
-    dcomplex prodz = 1.0;
-    dcomplex prodp = 1.0;
+    dcomplex prodz = 1.0_f;
+    dcomplex prodp = 1.0_f;
 
     for (const auto& z : zeros) prodz *= -z;
     for (const auto& p : poles) prodp *= -p;
@@ -156,9 +156,9 @@ void Butterworth::convertToHiPass(const double Wc, std::vector<dcomplex>& zeros,
     }
 }
 
-void Butterworth::convertToBandPass(const double Wc, const double bw,
+void Butterworth::convertToBandPass(const Scalar Wc, const Scalar bw,
                                     std::vector<dcomplex>& zeros,
-                                    std::vector<dcomplex>& poles, double& gain) {
+                                    std::vector<dcomplex>& poles, Scalar& gain) {
     // : bp_S = 0.5 * lp_S * BW + 0.5 * sqrt(BW^2 * lp_S^2 - 4*Wc^2)
 
     // Calculate bandpass gain
@@ -172,8 +172,8 @@ void Butterworth::convertToBandPass(const double Wc, const double bw,
     for (int i = 0; i < numPoles; ++i) {
         const auto& p = poles[i];
         if (std::abs(p) != 0) {
-            const dcomplex term1 = 0.5 * p * bw;
-            const dcomplex term2 = 0.5 * sqrt((bw * bw) * (p * p) - (4 * Wc * Wc));
+            const dcomplex term1 = 0.5_f * p * bw;
+            const dcomplex term2 = 0.5_f * std::sqrt((bw * bw) * (p * p) - (4 * Wc * Wc));
             poles[i] = term1 + term2;
             poles[numPoles + i] = term1 - term2;
         }
@@ -186,14 +186,14 @@ void Butterworth::convertToBandPass(const double Wc, const double bw,
     }
 }
 
-void Butterworth::convertToBandStop(const double Wc, const double bw,
+void Butterworth::convertToBandStop(const Scalar Wc, const Scalar bw,
                                     std::vector<dcomplex>& zeros,
-                                    std::vector<dcomplex>& poles, double& gain) {
+                                    std::vector<dcomplex>& poles, Scalar& gain) {
     // : bs_S = 0.5 * BW / lp_S + 0.5 * sqrt(BW^2 / lp_S^2 - 4*Wc^2)
 
     // Calculate gain
-    dcomplex prodz = 1.0;
-    dcomplex prodp = 1.0;
+    dcomplex prodz = 1.0_f;
+    dcomplex prodp = 1.0_f;
 
     for (const auto& z : zeros) prodz *= -z;
     for (const auto& p : poles) prodp *= -p;
@@ -218,22 +218,22 @@ void Butterworth::convertToBandStop(const double Wc, const double bw,
     for (int i = 0; i < numPoles; ++i) {
         const auto& p = poles[i];
         if (std::abs(p) != 0) {
-            const dcomplex term1 = 0.5 * bw / p;
-            const dcomplex term2 = 0.5 * sqrt((bw * bw) / (p * p) - (4 * Wc * Wc));
+            const dcomplex term1 = 0.5_f * bw / p;
+            const dcomplex term2 = 0.5_f * std::sqrt((bw * bw) / (p * p) - (4 * Wc * Wc));
             poles[i] = term1 + term2;
             poles[numPoles + i] = term1 - term2;
         }
     }
 }
 
-double Butterworth::bilinear(dcomplex& sz) {
+Scalar Butterworth::bilinear(dcomplex& sz) {
     dcomplex s = sz;
-    sz = (2.0 + s) / (2.0 - s);
+    sz = (2.0_f + s) / (2.0_f - s);
     // Return the gain
-    return std::abs(2.0 - s);
+    return std::abs(2.0_f - s);
 }
 
-std::vector<std::array<double, 6>> Butterworth::zp2sos(
+std::vector<std::array<Scalar, 6>> Butterworth::zp2sos(
     const std::vector<dcomplex>& zeros, const std::vector<dcomplex>& poles) {
     const int numZeros = zeros.size();
     const int numPoles = poles.size();
@@ -242,14 +242,14 @@ std::vector<std::array<double, 6>> Butterworth::zp2sos(
 
     // Add zeros at -1, so if S-plane degenerate case
     // where numZeros = 0 will map to -1 in Z-plane.
-    std::vector<dcomplex> z(filterOrder, -1.0);
-    std::vector<dcomplex> p(filterOrder, 0.0);
+    std::vector<dcomplex> z(filterOrder, -1.0_f);
+    std::vector<dcomplex> p(filterOrder, 0.0_f);
 
     // Copy
     std::copy(zeros.begin(), zeros.end(), z.begin());
     std::copy(poles.begin(), poles.end(), p.begin());
 
-    std::vector<std::array<double, 6>> sos;
+    std::vector<std::array<Scalar, 6>> sos;
 
     for (int i = 0; i + 1 < filterOrder; i += 2) {
         sos.push_back({

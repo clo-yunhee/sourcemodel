@@ -7,16 +7,16 @@
 
 class SVFBiquad {
    public:
-    void update(double b0, double b1, double b2, double a1, double a2);
+    void update(Scalar b0, Scalar b1, Scalar b2, Scalar a1, Scalar a2);
 
-    double tick(double x);
+    Scalar tick(Scalar x);
 
    private:
-    double _g;
-    double _R;
-    double _cHP;
-    double _cBP;
-    double _cLP;
+    Scalar _g;
+    Scalar _R;
+    Scalar _cHP;
+    Scalar _cBP;
+    Scalar _cLP;
 
     SVFPiece _HP;
     SVFPiece _BP;

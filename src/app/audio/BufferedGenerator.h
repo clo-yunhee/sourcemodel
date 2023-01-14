@@ -2,11 +2,13 @@
 #define SOURCEMODEL__AUDIO_BUFFERED_GENERATOR_H
 
 #include <boost/circular_buffer.hpp>
+#include <mutex>
 #include <shared_mutex>
 #include <vector>
 
 #include "audio/GainReductionComputer.h"
 #include "audio/LookAheadGainReduction.h"
+#include "math/utils.h"
 
 class AudioTime;
 
@@ -14,25 +16,27 @@ class BufferedGenerator {
    public:
     BufferedGenerator(const AudioTime& time);
 
-    void setBufferLength(int bufferLength);
-    void copyBufferTo(std::vector<double>& out);
+    void     setBufferLength(int bufferLength);
+    uint64_t copyBufferTo(std::vector<Scalar>& out);
 
-    void fillBuffer(std::vector<double>& out);
+    bool hasEnoughSamplesSince(uint64_t time, int length);
 
-    void   setSampleRate(double fs);
-    double sampleRate() const;
+    void fillBuffer(std::vector<Scalar>& out);
+
+    void   setSampleRate(Scalar fs);
+    Scalar sampleRate() const;
 
     void setNormalized(bool isNorm);
     bool isNormalized() const;
 
    protected:
-    virtual void fillInternalBuffer(std::vector<double>& out) = 0;
+    virtual void fillInternalBuffer(std::vector<Scalar>& out) = 0;
 
-    double time(int sampleOffset = 0) const;
+    Scalar time(int sampleOffset = 0) const;
 
     bool   hasSampleRateChanged() const;
     void   ackSampleRateChange();
-    double fs() const;
+    Scalar fs() const;
 
    private:
     void processGainReduction();
@@ -44,14 +48,14 @@ class BufferedGenerator {
 
     std::shared_mutex m_mutex;
     int               m_bufferLength;
-    cbso<double>      m_buffer;
+    cbso<Scalar>      m_buffer;
 
-    std::vector<double> m_internalBuffer;  // Filled by fillInternalBuffer.
+    std::vector<Scalar> m_internalBuffer;  // Filled by fillInternalBuffer.
 
     int          m_delaySamples;  // Compressor delay in samples.
-    cbso<double> m_delayBuffer;
+    cbso<Scalar> m_delayBuffer;
 
-    double m_fs;
+    Scalar m_fs;
     bool   m_fsChanged;
 
     // Anti-aliasing filter.

@@ -1,5 +1,16 @@
 include(FetchContent)
 
+#[[ Eigen
+FetchContent_Declare(
+    Eigen
+    URL      https://gitlab.com/libeigen/eigen/-/archive/3.4.0/eigen-3.4.0.tar.gz
+    URL_HASH SHA256=8586084F71F9BDE545EE7FA6D00288B264A2B7AC3607B974E54D13E7162C1C72
+)
+set(EIGEN_BUILD_DOC OFF CACHE INTERNAL "")
+set(BUILD_TESTING OFF CACHE INTERNAL "")
+set(EIGEN_BUILD_PKGCONFIG OFF CACHE INTERNAL "")
+FetchContent_MakeAvailable(Eigen) ]]
+
 # GLFW
 if(CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
     # Use Emscripten GLFW flag
@@ -44,36 +55,8 @@ if(NOT CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
     add_subdirectory(rtaudio)
 endif()
 
-# RtAudio
-
 # fftw3
-FetchContent_Declare(
-    fftw3
-    URL      https://fftw.org/fftw-3.3.10.tar.gz
-    URL_HASH SHA256=56C932549852CDDCFAFDAB3820B0200C7742675BE92179E59E6215B340E26467
-)
-set(BUILD_SHARED_LIBS OFF CACHE INTERNAL "")
-set(BUILD_TESTS OFF CACHE INTERNAL "")
-set(ENABLE_SSE ON CACHE INTERNAL "")
-set(ENABLE_FLOAT OFF CACHE INTERNAL "")
-if(CMAKE_CXX_COMPILER_ID STREQUAL MSVC OR CMAKE_CXX_SIMULATE_ID STREQUAL MSVC)
-    set(LIBM_LIBRARY OFF CACHE INTERNAL "")
-endif()
-
-FetchContent_GetProperties(fftw3)
-if(NOT fftw3_POPULATED)
-    FetchContent_Populate(fftw3)
-
-    file(GLOB _fftw3_patch "${CMAKE_CURRENT_SOURCE_DIR}/fftw3/*")
-    file(COPY ${_fftw3_patch} DESTINATION ${fftw3_SOURCE_DIR})
-
-    add_subdirectory(${fftw3_SOURCE_DIR} ${fftw3_BINARY_DIR})
-
-    target_include_directories(fftw3 INTERFACE $<BUILD_INTERFACE:${fftw3_SOURCE_DIR}/api>)
-    if(WIN32)
-        target_compile_definitions(fftw3 PRIVATE HAVE_ALIGNED_MALLOC _CRT_SECURE_NO_WARNINGS)
-    endif()
-endif()
+add_subdirectory(fftw3 EXCLUDE_FROM_ALL)
 
 # imgui and implot
 add_subdirectory(imgui EXCLUDE_FROM_ALL)
@@ -96,7 +79,7 @@ FetchContent_Declare(
     URL      https://github.com/boostorg/boost/releases/download/boost-1.81.0/boost-1.81.0.tar.gz
     URL_HASH SHA256=121DA556B718FD7BD700B5F2E734F8004F1CFA78B7D30145471C526BA75A151C
 )
-set(BOOST_INCLUDE_LIBRARIES "circular_buffer;math;multiprecision" CACHE INTERNAL "")
+set(BOOST_INCLUDE_LIBRARIES "circular_buffer;math;multiprecision;dynamic_bitset;lockfree" CACHE INTERNAL "")
 FetchContent_MakeAvailable(Boost)
 
 # NFParam (AudioParam-like library)
@@ -107,3 +90,6 @@ FetchContent_Declare(
 )
 set(BUILD_TESTING OFF CACHE INTERNAL "")
 FetchContent_MakeAvailable(NFParam)
+
+# Gaborator 
+add_subdirectory(gaborator)

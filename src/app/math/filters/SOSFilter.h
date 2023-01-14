@@ -5,25 +5,27 @@
 #include <complex>
 #include <vector>
 
+#include "math/utils.h"
+
 class SOSFilter {
    public:
-    SOSFilter(const std::vector<std::array<double, 6>>& sos = {});
+    SOSFilter(const std::vector<std::array<Scalar, 6>>& sos = {});
 
     // zpk2sos
-    SOSFilter(const std::vector<std::complex<double>>& z,
-              const std::vector<std::complex<double>>& p, double k);
+    SOSFilter(const std::vector<std::complex<Scalar>>& z,
+              const std::vector<std::complex<Scalar>>& p, Scalar k);
 
-    std::vector<double> filter(const std::vector<double>& x);
+    std::vector<Scalar> filter(const std::vector<Scalar>& x);
 
-    const std::vector<std::array<double, 6>>& coefficients() const;
+    const std::vector<std::array<Scalar, 6>>& coefficients() const;
 
    protected:
-    std::vector<std::array<double, 6>> m_sos;
-    std::vector<std::array<double, 2>> m_zi;
+    std::vector<std::array<Scalar, 6>> m_sos;
+    std::vector<std::array<Scalar, 2>> m_zi;
 };
 
-std::vector<std::array<double, 6>> zpk2sos(const std::vector<std::complex<double>>& z,
-                                           const std::vector<std::complex<double>>& p,
-                                           double                                   k);
+std::vector<std::array<Scalar, 6>> zpk2sos(const std::vector<std::complex<Scalar>>& z,
+                                           const std::vector<std::complex<Scalar>>& p,
+                                           Scalar                                   k);
 
 #endif  // SOURCEMODEL__MATH_FILTERS_SOSFILTER_H

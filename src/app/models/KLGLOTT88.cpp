@@ -4,16 +4,14 @@
 
 using namespace models;
 
-double KLGLOTT88::evaluate(double t) const {
-    static constexpr double T0 = 1;
-
-    double dg;
+Scalar KLGLOTT88::evaluate(Scalar t) const {
+    Scalar dg;
 
     if (t < 0 || t > 1) {
-        t = -fmod(fabs(t), 1.0);
+        t = -std::fmod(std::abs(t), 1.0_f);
     }
 
-    if (t <= m_Oq * T0) {
+    if (t <= m_Oq) {
         dg = 2.0 * t / m_Oq - 3.0 * t * t / (m_Oq * m_Oq);
     } else {
         dg = 0;
@@ -21,15 +19,30 @@ double KLGLOTT88::evaluate(double t) const {
     return dg;
 }
 
+Scalar KLGLOTT88::evaluateAntiderivative(Scalar t) const {
+    Scalar g;
+
+    if (t < 0 || t > 1) {
+        t = -std::fmod(std::abs(t), 1.0_f);
+    }
+
+    if (t <= m_Oq) {
+        g = t * t / (m_Oq * m_Oq) - std::pow(t, 3.0_f) / std::pow(m_Oq, 3.0_f);
+    } else {
+        g = 0;
+    }
+    return g;
+}
+
 void KLGLOTT88::fitParameters(const GlottalFlowParameters& params) {
     m_Oq = params.Oq.value();
 }
 
 void KLGLOTT88::updateParameterBounds(GlottalFlowParameters& params) {
-    params.Oq.setMin(0.35);
-    params.Oq.setMax(0.85);
+    params.Oq.setMin(0.35_f);
+    params.Oq.setMax(0.85_f);
 
-    params.am.setFixed(0.667);
+    params.am.setFixed(0.667_f);
 
-    params.Qa.setFixed(0);
+    params.Qa.setFixed(0_f);
 }

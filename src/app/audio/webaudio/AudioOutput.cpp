@@ -28,7 +28,10 @@ void AudioOutput::startPlaying() {
         desiredSpec.freq = 48000;
         desiredSpec.format = AUDIO_F32SYS;
         desiredSpec.channels = 1;
-        desiredSpec.samples = 512;
+        // Relatively high buffer length on web because
+        // processing latency with short buffers is really big.
+        // Set a high buffer length to avoid constant buffer underruns
+        desiredSpec.samples = 1024;
         desiredSpec.callback = &audioCallback;
         desiredSpec.userdata = this;
 
@@ -48,10 +51,14 @@ void AudioOutput::stopPlaying() {
 
 bool AudioOutput::isPlaying() const { return m_isPlaying; }
 
-double AudioOutput::sampleRate() const { return m_sampleRate; }
+Scalar AudioOutput::sampleRate() const { return m_sampleRate; }
 
-double AudioOutput::time(const int sampleOffset) const {
-    return (m_time + sampleOffset) / m_sampleRate;
+Scalar AudioOutput::time(const int sampleOffset) const {
+    return (sampleOffset + m_time) / m_sampleRate;
+}
+
+uint64_t AudioOutput::timeSamples(const int sampleOffset) const {
+    return sampleOffset + m_time;
 }
 
 void AudioOutput::audioCallback(void* userdata, Uint8* stream, int lenBytes) {
@@ -59,10 +66,10 @@ void AudioOutput::audioCallback(void* userdata, Uint8* stream, int lenBytes) {
     auto      output = reinterpret_cast<float*>(stream);
     const int frameCount = lenBytes / sizeof(float);
 
-    std::vector<double> buffer(frameCount, 0.0f);
-    bool                returnedSomething = self->m_bufferCallback(buffer);
+    self->m_buffer.resize(frameCount);
+    bool returnedSomething = self->m_bufferCallback(self->m_buffer);
     if (returnedSomething) {
-        std::copy(buffer.begin(), buffer.end(), output);
+        std::copy(self->m_buffer.begin(), self->m_buffer.end(), output);
     }
 
     self->m_time += frameCount;
