@@ -73,8 +73,7 @@ add_embedded_font(${_target} "fonts/vollkorn-bold.ttf"
 add_embedded_font(${_target} "fonts/fa-solid.ttf"
                     font_faSolid.h
                     gFontFaSolid
-                    "F026-F028,F04B-F04C,F6A8")
-                     #TODO : rebuild when unicode string changes
+                    "F026-F028,F04B-F04C,F6A8-F6A9")
 
 target_include_directories(${_target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 

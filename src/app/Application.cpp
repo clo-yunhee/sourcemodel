@@ -250,7 +250,7 @@ void Application::setupFonts() {
         0xF04B,  // Play
         0xF04C,  // Pause
         0xF6A8,
-        0xF6A8,  // Volume-mid
+        0xF6A9,  // Volume-mid, volume-mute
         0,
     };
 

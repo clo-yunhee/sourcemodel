@@ -112,6 +112,7 @@ class SourceModelApp : public Application {
     bool           m_doBypassFilter;
     bool           m_doNormalizeFlowPlot;
     FrequencyScale m_spectrumFrequencyScale;
+    bool           m_isVolumeMuted;
     Scalar         m_mutedLogVolume;
     Scalar         m_logVolume;
     Scalar         m_linVolume;

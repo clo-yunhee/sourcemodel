@@ -27,6 +27,7 @@ SourceModelApp::SourceModelApp(const int initialWidth, const int initialHeight)
       m_doBypassFilter(false),
       m_doNormalizeFlowPlot(true),
       m_spectrumFrequencyScale(FrequencyScale_Mel),
+      m_isVolumeMuted(false),
       m_mutedLogVolume(0),
       m_logVolume(90),
       m_linVolume(0.6561) {
@@ -123,33 +124,50 @@ void SourceModelApp::renderMenuBar() {
     ImGui::Separator();
 
     // Volume icon
+    // Muted: char is 0xF6A9
     // Off: <= 16, char is 0xF026
     // Low: <= 33, char is 0xF027
     // Mid: <= 67, char is 0xF6A8
     // High: > 67, char is 0xF028
     const float afterVolX = ImGui::GetCursorPosX() + ImGui::CalcTextSize("\uF028").x;
-    if ((int)m_logVolume <= 16) {
-        ImGui::TextUnformatted("\uF026");
-    } else if ((int)m_logVolume <= 33) {
-        ImGui::TextUnformatted("\uF027");
-    } else if ((int)m_logVolume <= 67) {
-        ImGui::TextUnformatted("\uF6A8");
+    if (!m_isVolumeMuted) {
+        if ((int)m_logVolume <= 16) {
+            ImGui::TextUnformatted("\uF026");
+        } else if ((int)m_logVolume <= 33) {
+            ImGui::TextUnformatted("\uF027");
+        } else if ((int)m_logVolume <= 67) {
+            ImGui::TextUnformatted("\uF6A8");
+        } else {
+            ImGui::TextUnformatted("\uF028");
+        }
     } else {
-        ImGui::TextUnformatted("\uF028");
+        ImGui::TextUnformatted("\uF6A9");
     }
 
     if (ImGui::IsItemClicked()) {
         std::swap(m_mutedLogVolume, m_logVolume);
-        // Using x^4 as an approximation.
-        m_linVolume = std::pow(m_logVolume / 100.0_f, 4.0_f);
+        if (!m_isVolumeMuted) {
+            m_linVolume = 0;
+            m_isVolumeMuted = true;
+        } else {
+            // Using x^4 as an approximation.
+            m_linVolume = std::pow(m_logVolume / 100.0_f, 4.0_f);
+            m_isVolumeMuted = false;
+        }
     }
 
     ImGui::SameLine(afterVolX);
 
     ImGui::SetNextItemWidth(5 * em());
     if (ImGui::SliderFloatOrDouble("##Volume", &m_logVolume, 0.0_f, 100.0_f, "%.0f %%")) {
+        // Unmute if it was muted.
+        if (m_isVolumeMuted) {
+            std::swap(m_mutedLogVolume, m_logVolume);
+            m_isVolumeMuted = false;
+        }
         // Using x^4 as an approximation.
         m_linVolume = std::pow(m_logVolume / 100.0_f, 4.0_f);
+        m_isVolumeMuted = false;
     }
 
     ImGui::Separator();
