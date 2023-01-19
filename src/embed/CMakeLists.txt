@@ -43,10 +43,7 @@ else()
     set(embed_cli_exe "$<TARGET_FILE:embed_cli>" PARENT_SCOPE)
 endif()
 
-function(add_embedded_file _target _input_file _output_file _variable)
-    set(_sub_target "${_target}_${_variable}")
-    set(_actual_input_file "${CMAKE_CURRENT_SOURCE_DIR}/${_input_file}")
-    set(_actual_output_file "${CMAKE_CURRENT_BINARY_DIR}/include/embeds/${_output_file}")
+function(_add_embedded_file _target _actual_input_file _actual_output_file _variable)
 
     add_custom_command(
         OUTPUT "${_actual_output_file}"
@@ -64,5 +61,38 @@ function(add_embedded_file _target _input_file _output_file _variable)
     add_dependencies(${_target} embed_cli)
 endfunction()
 
+function(add_embedded_file _target _input_file _output_file _variable)
+    set(_actual_input_file "${CMAKE_CURRENT_SOURCE_DIR}/${_input_file}")
+    set(_actual_output_file "${CMAKE_CURRENT_BINARY_DIR}/include/embeds/${_output_file}")
+    _add_embedded_file(${_target} ${_actual_input_file} ${_actual_output_file} ${_variable})
+endfunction()
+
 #add_executable(embed_test test.cpp)
 #add_embedded_file(embed_test test.dat test_dat.h gTest)
+
+# Embed FONTS specifically, using fontTools subsetter as a pre-processing pass.
+function(add_embedded_font _target _input_file _output_file _variable _unicodes)
+    set(_actual_input_file "${CMAKE_CURRENT_SOURCE_DIR}/${_input_file}")
+    set(_actual_output_file "${CMAKE_CURRENT_BINARY_DIR}/include/embeds/${_output_file}")
+    
+    # Add -subset suffix
+    # add_embedded_file takes a filename relative to CURRENT_SOURCE_DIR
+    get_filename_component(_input_file_name ${_input_file} NAME_WE)
+    set(_subset_file "${_input_file_name}-subset.woff")
+
+    set(_subset_output_file "${CMAKE_CURRENT_BINARY_DIR}/fonts/${_subset_file}")
+    add_custom_command(
+        OUTPUT "${_subset_output_file}"
+        COMMAND "pyftsubset"
+                        "${_actual_input_file}"
+                        "--unicodes=${_unicodes}"
+                        "--no-ignore-missing-unicodes" 
+                        "--output-file=${_subset_output_file}"
+                        "--flavor=woff"
+                        "--with-zopfli"
+        DEPENDS "${_actual_input_file}"
+        VERBATIM
+    )
+
+    _add_embedded_file(${_target} ${_subset_output_file} ${_actual_output_file} ${_variable})
+endfunction()

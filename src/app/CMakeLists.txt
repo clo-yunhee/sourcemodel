@@ -60,17 +60,21 @@ add_executable(${_target}
     SourceModelApp.h
 )
 
-add_embedded_file(${_target} "fonts/roboto-regular.woff"
+add_embedded_font(${_target} "fonts/roboto-regular.ttf"
                     font_roboto.h
-                    gFontRoboto)
+                    gFontRoboto
+                    "0020-007E,00A0-00FF,03B1,2080-2085,2090,2098")
 
-add_embedded_file(${_target} "fonts/vollkorn-regular.woff"
+add_embedded_font(${_target} "fonts/vollkorn-bold.ttf"
                     font_vollkorn.h
-                    gFontVollkorn)
+                    gFontVollkorn
+                    "2208")
 
-add_embedded_file(${_target} "fonts/fa6-solid.woff"
+add_embedded_font(${_target} "fonts/fa-solid.ttf"
                     font_faSolid.h
-                    gFontFaSolid)
+                    gFontFaSolid
+                    "F026-F028,F04B-F04C,F6A8")
+                     #TODO : rebuild when unicode string changes
 
 target_include_directories(${_target} PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 

@@ -106,7 +106,7 @@ void Application::resetDeviceObjects() {
     }
 }
 
-float Application::em() const { return 20.0f * m_contentScale; }
+float Application::em() const { return 18.0f * m_contentScale; }
 
 void Application::setupThemeColors(ImGuiStyle& style) {
     if (m_isDarkTheme) {
@@ -245,8 +245,12 @@ void Application::setupFonts() {
         0,
     };
     static ImWchar rangesFaSolid[] = {
+        0xF026,  // Volume-off, volume-low, volume-high
+        0xF028,
         0xF04B,  // Play
         0xF04C,  // Pause
+        0xF6A8,
+        0xF6A8,  // Volume-mid
         0,
     };
 
@@ -260,16 +264,16 @@ void Application::setupFonts() {
                                    em(), &config, &rangesRoboto[0]);
 
     config.MergeMode = true;
-    config.GlyphOffset.y = 1;
-    io.Fonts->AddFontFromMemoryTTF(embedded::gFontVollkorn,
-                                   embedded::gFontVollkorn.size(), em(), &config,
-                                   &rangesVollkorn[0]);
+    config.GlyphOffset.y = 0;
+    io.Fonts->AddFontFromMemoryTTF(
+        embedded::gFontVollkorn, embedded::gFontVollkorn.size(),
+        em() + 6 * contentScale(), &config, &rangesVollkorn[0]);
 
     config.MergeMode = true;
     config.GlyphMinAdvanceX = em() + 1;
     config.GlyphOffset.y = 2;
     io.Fonts->AddFontFromMemoryTTF(embedded::gFontFaSolid, embedded::gFontFaSolid.size(),
-                                   em() + 1, &config, &rangesFaSolid[0]);
+                                   em() + 1 * contentScale(), &config, &rangesFaSolid[0]);
 
     io.Fonts->Build();
 
