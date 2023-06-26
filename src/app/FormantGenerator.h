@@ -8,6 +8,8 @@
 
 #include "FilterSpectrum.h"
 #include "OneFormantFilter.h"
+#include "ScalarParameter.h"
+#include "ToggleParameter.h"
 #include "audio/BufferedGenerator.h"
 #include "math/filters/SOSFilter.h"
 
@@ -19,11 +21,16 @@ class FormantGenerator : public BufferedGenerator {
 
     static constexpr int kNumFormants = 5;
 
-    Scalar frequency(int k) const;
-    void   setFrequency(int k, Scalar Fk);
+    ScalarParameter& frequency(int k);
+    ScalarParameter& bandwidth(int k);
 
-    Scalar bandwidth(int k) const;
-    void   setBandwidth(int k, Scalar Bk);
+    ScalarParameter& flutter();
+    ToggleParameter& flutterToggle();
+
+    void handleFrequencyChanged(int k, const std::string&, Scalar Fk);
+    void handleBandwidthChanged(int k, const std::string&, Scalar Bk);
+
+    void handleParamChanged(const std::string& name, Scalar value);
 
     const FilterSpectrum& spectrum() const;
     FilterSpectrum&       spectrum();
@@ -39,13 +46,18 @@ class FormantGenerator : public BufferedGenerator {
     FilterSpectrum   m_spectrum;
     std::atomic_bool m_mustRegenSpectrum;
 
-    // Target value for each parameter.
-    std::array<Scalar, kNumFormants> m_targetF;
-    std::array<Scalar, kNumFormants> m_targetB;
+    // ScalarParam for each parameter.
+    std::array<ScalarParameter, kNumFormants> m_targetF;
+    std::array<ScalarParameter, kNumFormants> m_targetB;
 
     // NFParam for each parameter.
     std::array<std::shared_ptr<nativeformat::param::Param>, kNumFormants> m_F;
     std::array<std::shared_ptr<nativeformat::param::Param>, kNumFormants> m_B;
+
+    std::shared_ptr<nativeformat::param::Param> m_Ffmax;
+
+    ScalarParameter m_paramFlutter;
+    ToggleParameter m_paramFlutterToggle;
 
     // One filter per formant.
     std::array<OneFormantFilter, kNumFormants> m_filters;

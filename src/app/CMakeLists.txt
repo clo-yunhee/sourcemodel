@@ -22,7 +22,9 @@ add_executable(${_target}
     math/FrequencyScale.h
     math/LTTB.cpp
     math/LTTB.h
+    math/PinkNoise.h
     math/utils.h
+    math/windows.h
     models/KLGLOTT88.cpp
     models/KLGLOTT88.h
     models/LF_precomputed_Rd_double.inc.h
@@ -46,24 +48,26 @@ add_executable(${_target}
     GlottalFlow.cpp
     GlottalFlow.h
     GlottalFlowModel.h
-    GlottalFlowParameter.cpp
-    GlottalFlowParameter.h
     GlottalFlowParameters.h
     imgui_user.cpp
     imgui_user.h
     main.cpp
     OneFormantFilter.cpp
     OneFormantFilter.h
+    ScalarParameter.cpp
+    ScalarParameter.h
     SourceGenerator.cpp
     SourceGenerator.h
     SourceModelApp.cpp
     SourceModelApp.h
+    ToggleParameter.cpp
+    ToggleParameter.h
 )
 
 add_embedded_font(${_target} "fonts/roboto-regular.ttf"
                     font_roboto.h
                     gFontRoboto
-                    "0020-007E,00A0-00FF,03B1,2080-2085,2090,2098")
+                    "0020-007E,00A0-00FF,03B1,2080-2085,2090,2093,2098")
 
 add_embedded_font(${_target} "fonts/vollkorn-bold.ttf"
                     font_vollkorn.h

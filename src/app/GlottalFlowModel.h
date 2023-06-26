@@ -12,7 +12,7 @@ class GlottalFlowModel {
     virtual Scalar evaluate(Scalar t) const = 0;
     virtual Scalar evaluateAntiderivative(Scalar t) const { return 0; }
 
-    virtual void fitParameters(const GlottalFlowParameters& params) = 0;
+    virtual void fitParameters(GlottalFlowParameters& params) = 0;
     virtual void updateParameterBounds(GlottalFlowParameters& params) = 0;
 };
 

@@ -16,7 +16,7 @@ class LF : public GlottalFlowModel {
     Scalar evaluate(Scalar t) const override;
     Scalar evaluateAntiderivative(Scalar t) const override;
 
-    void fitParameters(const GlottalFlowParameters& params) override;
+    void fitParameters(GlottalFlowParameters& params) override;
     void updateParameterBounds(GlottalFlowParameters& params) override;
 
     // Specific to LF model, get Te directly, used for when Rd is used.

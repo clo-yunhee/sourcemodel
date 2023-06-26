@@ -66,7 +66,7 @@ Scalar LF::evaluateAntiderivative(Scalar t) const {
     return g;
 }
 
-void LF::fitParameters(const GlottalFlowParameters& params) {
+void LF::fitParameters(GlottalFlowParameters& params) {
     static constexpr Scalar Ee = 1;
     static constexpr Scalar T0 = 1;
 
@@ -89,6 +89,20 @@ void LF::fitParameters(const GlottalFlowParameters& params) {
 
         m_Ee = Ee;
         std::tie(m_Te, m_Tp, m_Ta, m_alpha, m_epsilon) = Rd_table[index];
+
+        // T0 = 1
+
+        // Ta = Qa * (1 - Oq)
+        // Te = Oq
+        // Tp = am * Oq
+
+        // Oq = Te
+        // Qa = Ta / (1 - Oq) = Ta / (1 - Te)
+        // am = Tp / Oq = Tp / Te
+
+        params.Oq.setValue(m_Te);
+        params.am.setValue(m_Tp / m_Te);
+        params.Qa.setValue(m_Ta / (1 - m_Te));
     }
 
     // Store Ug(Te)

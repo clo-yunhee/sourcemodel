@@ -3,12 +3,12 @@
 
 #include <sigslot/signal.hpp>
 
-#include "GlottalFlowParameter.h"
+#include "ScalarParameter.h"
 
 struct GlottalFlowParameters {
-    GlottalFlowParameter Oq{"Oq", 0.45, 0.35, 1.0};
-    GlottalFlowParameter am{"am", 0.87, 0.6, 0.9};
-    GlottalFlowParameter Qa{"Qa", 0.09, 0, 0.5};
+    ScalarParameter Oq{"Oq", 0.45, 0.35, 1.0};
+    ScalarParameter am{"am", 0.87, 0.6, 0.9};
+    ScalarParameter Qa{"Qa", 0.09, 0, 0.5};
 
     // Using Rd parameter (only for LF model)
     bool usingRd() const { return _usingRd; }
@@ -20,7 +20,7 @@ struct GlottalFlowParameters {
     }
     sigslot::signal<bool> usingRdChanged;
 
-    GlottalFlowParameter Rd{"Rd", 0.32, 0.01, 6.00};
+    ScalarParameter Rd{"Rd", 0.32, 0.01, 6.00};
 
    private:
     bool _usingRd{true};

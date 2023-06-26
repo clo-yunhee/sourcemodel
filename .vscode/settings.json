@@ -158,6 +158,10 @@
         "numericaldiff": "cpp",
         "openglsupport": "cpp",
         "specialfunctions": "cpp",
-        "splines": "cpp"
-    }
+        "splines": "cpp",
+        "rope": "cpp"
+    },
+    "clangd.arguments": [
+        "--compile-commands-dir=${workspaceFolder}/build/${variant:buildType}/${buildKit}"
+    ]
 }

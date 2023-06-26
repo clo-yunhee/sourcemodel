@@ -1,5 +1,7 @@
-#ifndef SOURCEMODEL__GLOTTAL_FLOW_PARAMETER_H
-#define SOURCEMODEL__GLOTTAL_FLOW_PARAMETER_H
+#ifndef SOURCEMODEL__SCALAR_PARAMETER_H
+#define SOURCEMODEL__SCALAR_PARAMETER_H
+
+#include <NFParam/Param.h>
 
 #include <cfloat>
 #include <sigslot/signal.hpp>
@@ -7,9 +9,9 @@
 
 #include "math/utils.h"
 
-class GlottalFlowParameter {
+class ScalarParameter {
    public:
-    GlottalFlowParameter(const std::string& name, Scalar initial, Scalar min, Scalar max);
+    ScalarParameter(const std::string& name, Scalar initial, Scalar min, Scalar max);
 
     const std::string& name() const;
 
@@ -26,6 +28,8 @@ class GlottalFlowParameter {
     bool isFixed() const;
     void setFixed(Scalar);
 
+    std::shared_ptr<nativeformat::param::Param> createParamFrom();
+
    private:
     void enforceBounds();
 
@@ -37,4 +41,4 @@ class GlottalFlowParameter {
     bool m_isFixed;
 };
 
-#endif  //  SOURCEMODEL__GLOTTAL_FLOW_PARAMETER_H
+#endif  //  SOURCEMODEL__SCALAR_PARAMETER_H

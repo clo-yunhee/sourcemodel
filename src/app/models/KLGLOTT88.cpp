@@ -34,9 +34,7 @@ Scalar KLGLOTT88::evaluateAntiderivative(Scalar t) const {
     return g;
 }
 
-void KLGLOTT88::fitParameters(const GlottalFlowParameters& params) {
-    m_Oq = params.Oq.value();
-}
+void KLGLOTT88::fitParameters(GlottalFlowParameters& params) { m_Oq = params.Oq.value(); }
 
 void KLGLOTT88::updateParameterBounds(GlottalFlowParameters& params) {
     params.Oq.setMin(0.35_f);

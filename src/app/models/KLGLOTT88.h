@@ -13,7 +13,7 @@ class KLGLOTT88 : public GlottalFlowModel {
     Scalar evaluate(Scalar t) const override;
     Scalar evaluateAntiderivative(Scalar t) const override;
 
-    void fitParameters(const GlottalFlowParameters& params) override;
+    void fitParameters(GlottalFlowParameters& params) override;
     void updateParameterBounds(GlottalFlowParameters& params) override;
 
    private:

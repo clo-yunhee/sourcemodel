@@ -43,7 +43,7 @@ Scalar RosenbergC::evaluateAntiderivative(Scalar t) const {
     return g;
 }
 
-void RosenbergC::fitParameters(const GlottalFlowParameters& params) {
+void RosenbergC::fitParameters(GlottalFlowParameters& params) {
     const Scalar Oq = params.Oq.value();
     const Scalar am = params.am.value();
 

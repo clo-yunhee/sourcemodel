@@ -41,12 +41,19 @@ class SourceModelApp : public Application {
     void renderOther() override;
 
    private:
-    void renderSourceParameterControl(GlottalFlowParameter& param, const char* name,
-                                      const char* displayName, float itemX);
+    void SourceParameterControl(ScalarParameter& param, const char* name,
+                                const char* displayName, float itemX);
 
-    void renderFormantParameterControl(int k, float fLabelW, float bLabelW,
-                                       float gLabelW);
+    void FormantParameterControl(int k);
 
+    // labelW = -1 means auto fit to the display label.
+    void ScalarParameterControl(ScalarParameter& param, const char* displayName,
+                                float fieldW, const char* format = "%g",
+                                float labelW = -1);
+
+    void ToggleParameterControl(ToggleParameter& param, const char* displayName);
+
+    // returns true if changed.
     bool ScrollableDrag(const char* fieldLabel, float labelW, const char* fieldId,
                         float fieldW, Scalar* value, Scalar min, Scalar max,
                         const char* format, bool autoScale = true,
@@ -108,9 +115,14 @@ class SourceModelApp : public Application {
     std::vector<std::string> m_minorMinorTickLabels;
     boost::dynamic_bitset<>  m_tickBits;
 
-    bool           m_showAdvancedSourceParams;
-    bool           m_doBypassFilter;
-    bool           m_doNormalizeFlowPlot;
+    bool m_doBypassFilter;  // Bypass the filter part of the generation
+
+    bool m_doSourceJitter;   // Toggle source jitter (pitch variation)
+    bool m_doSourceShimmer;  // Toggle source shimmer (amplitude variation)
+    bool m_doPitchSynchronousFormantVariation;  // Pitch synchronous F1/F2 variation
+
+    bool m_showAdvancedSourceParams;  // Show advanced GFM parameters
+    bool m_doNormalizeFlowPlot;  // Normalize glottal flow over [-1,1] before plotting
     FrequencyScale m_spectrumFrequencyScale;
     bool           m_isVolumeMuted;
     Scalar         m_mutedLogVolume;

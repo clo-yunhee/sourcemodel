@@ -235,6 +235,7 @@ void Application::setupFonts() {
         0x03B1, 0x03B1,  // Greek small letter alpha
         0x2080, 0x2085,  // Subscript 0 to 5
         0x2090, 0x2090,  // Subscript a
+        0x2093, 0x2093,  // Subscript x
         0x2098, 0x2098,  // Subscript m
         0x25A1, 0x25A1,  // Unknown character symbol
         0,

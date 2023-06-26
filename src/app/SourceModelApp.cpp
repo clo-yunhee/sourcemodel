@@ -23,8 +23,11 @@ SourceModelApp::SourceModelApp(const int initialWidth, const int initialHeight)
       m_downsampledCount(0),
       m_downsampledStart(-1),
       m_downsampledEnd(-1),
-      m_showAdvancedSourceParams(false),
       m_doBypassFilter(false),
+      m_doSourceJitter(true),
+      m_doSourceShimmer(true),
+      m_doPitchSynchronousFormantVariation(true),
+      m_showAdvancedSourceParams(false),
       m_doNormalizeFlowPlot(true),
       m_spectrumFrequencyScale(FrequencyScale_Mel),
       m_isVolumeMuted(false),
@@ -215,7 +218,19 @@ void SourceModelApp::renderMain() {
     ImGuiIO&    io = ImGui::GetIO();
     ImGuiStyle& style = ImGui::GetStyle();
 
+    const float containerTopHeight = ImGui::GetContentRegionAvail().y / 2;
+    const float containerBottomHeight = ImGui::GetContentRegionAvail().y / 2;
+
+    const float spectrumSettingsWidth =
+        std::min(ImGui::GetContentRegionAvail().x / 3, 25 * em());
+    const float spectrumPlotWidth =
+        ImGui::GetContentRegionAvail().x - spectrumSettingsWidth;
+
     const float childLWidth = std::max(ImGui::GetContentRegionAvail().x / 3, 25 * em());
+    const float childRRWidth = std::max(ImGui::GetContentRegionAvail().x / 5, 15 * em());
+
+    ImGui::BeginChild("ContainerTop", ImVec2(-1, containerTopHeight));
+
     ImGui::BeginChild("ChildL", ImVec2(childLWidth, -1));
 
     ImGui::BeginGroupPanel("Glottal flow model", ImVec2(-1, 0));
@@ -243,11 +258,10 @@ void SourceModelApp::renderMain() {
             m_glottalFlow.setModelType((GlottalFlowModelType)type);
         }
 
-        renderSourceParameterControl(m_glottalFlow.parameters().Oq, "Oq", "Oq", itemX);
-        renderSourceParameterControl(m_glottalFlow.parameters().am, "am", "\u03B1\u2098",
-                                     itemX);
-        renderSourceParameterControl(m_glottalFlow.parameters().Qa, "Qa", "Q\u2090",
-                                     itemX);
+        SourceParameterControl(m_glottalFlow.parameters().Oq, "Oq", "Oq", itemX);
+        SourceParameterControl(m_glottalFlow.parameters().am, "am", "\u03B1\u2098",
+                               itemX);
+        SourceParameterControl(m_glottalFlow.parameters().Qa, "Qa", "Q\u2090", itemX);
     } else {
         ImGui::AlignTextToFramePadding();
         ImGui::NewLine();
@@ -327,64 +341,77 @@ void SourceModelApp::renderMain() {
 
     ImGui::BeginGroupPanel("Synthesizer", ImVec2(childLWidth, 0));
 
-    constexpr const char* f0Label = "f\u2080";
-    const float           f0LabelW = ImGui::CalcTextSize(f0Label).x + style.ItemSpacing.x;
-    Scalar                pitch = m_sourceGenerator.pitch();
-    if (ScrollableDrag(f0Label, f0LabelW, "##param_f0", 15 * em(), &pitch, 16.0, 1000.0,
-                       "%g Hz")) {
-        m_sourceGenerator.setPitch(pitch);
-    }
+    ImGui::BeginGroupPanel("Source", ImVec2(childLWidth / 2, 0));
 
-    const float fLabelW = ImGui::CalcTextSize("f\u2081").x + style.ItemSpacing.x;
-    const float bLabelW = ImGui::CalcTextSize("b\u2081").x + style.ItemSpacing.x;
-    const float gLabelW = ImGui::CalcTextSize("G\u2081").x + style.ItemSpacing.x;
+    ScalarParameterControl(m_sourceGenerator.pitch(), "f\u2080 :", 15 * em(), "%g Hz");
 
-    ImGui::SameLine(f0LabelW + 15 * em() + bLabelW + style.ItemSpacing.x);
+    ToggleParameterControl(m_sourceGenerator.flutterToggle(), "Pitch flutter");
 
-    ImGui::Checkbox("Bypass filter?", &m_doBypassFilter);
+    if (!m_sourceGenerator.flutterToggle().value()) ImGui::BeginDisabled();
 
-    for (int k = 0; k < FormantGenerator::kNumFormants; ++k) {
-        renderFormantParameterControl(k, fLabelW, bLabelW, gLabelW);
-    }
+    ScalarParameterControl(m_sourceGenerator.flutter(),
+                           "Fl\u2098\u2090\u2093 :", 7.5 * em());
 
-    ImGui::EndGroupPanel();  // Synthesizer
+    if (!m_sourceGenerator.flutterToggle().value()) ImGui::EndDisabled();
+
+    ToggleParameterControl(m_sourceGenerator.jitterToggle(), "Pitch jitter");
+
+    if (!m_sourceGenerator.jitterToggle().value()) ImGui::BeginDisabled();
+
+    ScalarParameterControl(m_sourceGenerator.jitter(),
+                           "J\u2098\u2090\u2093 :", 7.5 * em());
+
+    if (!m_sourceGenerator.jitterToggle().value()) ImGui::EndDisabled();
+
+    ToggleParameterControl(m_sourceGenerator.shimmerToggle(), "Amplitude shimmer");
+
+    if (!m_sourceGenerator.shimmerToggle().value()) ImGui::BeginDisabled();
+
+    ScalarParameterControl(m_sourceGenerator.shimmer(),
+                           "S\u2098\u2090\u2093 :", 7.5 * em());
+
+    if (!m_sourceGenerator.shimmerToggle().value()) ImGui::EndDisabled();
+
+    ImGui::EndGroupPanel();  // Source
 
     ImGui::SameLine();
 
-    ImGui::BeginGroupPanel("Spectrum settings", ImVec2(childLWidth, 0));
+    ImGui::BeginGroupPanel("Filter", ImVec2(childLWidth / 2, 0));  // Filter
 
-    ImGui::SetNextItemWidth(10 * em());
-    if (ImGui::BeginCombo("Frequency scale",
-                          FrequencyScale_Name(m_spectrumFrequencyScale))) {
-        for (int i = 0; i < FrequencyScale_COUNT; ++i) {
-            const auto scale = static_cast<FrequencyScale>(i);
-            if (ImGui::Selectable(FrequencyScale_Name(scale),
-                                  scale == m_spectrumFrequencyScale)) {
-                m_spectrumFrequencyScale = scale;
-            }
-        }
-        ImGui::EndCombo();
+    ImGui::Checkbox("Bypass filter?", &m_doBypassFilter);
+
+    if (m_doBypassFilter) ImGui::BeginDisabled();
+
+    for (int k = 0; k < FormantGenerator::kNumFormants; ++k) {
+        FormantParameterControl(k);
     }
 
-    ImGui::SetNextItemWidth(10 * em());
-    const int nfft = m_sourceSpectrum.transformSize();
-    if (ImGui::BeginCombo("Transform size", std::to_string(nfft).c_str())) {
-        for (int N = 512; N <= 32768; N *= 2) {
-            if (ImGui::Selectable(std::to_string(N).c_str(), N == nfft)) {
-                m_sourceSpectrum.setTransformSize(N);
-                m_formantSpectrum.setTransformSize(N);
-            }
-        }
-        ImGui::EndCombo();
-    }
+    ToggleParameterControl(m_formantGenerator.flutterToggle(), "Formant flutter");
 
-    ImGui::EndGroupPanel();  // Spectrum settings
+    if (!m_formantGenerator.flutterToggle().value()) ImGui::BeginDisabled();
 
-    ImGui::BeginGroupPanel("Spectrum", ImVec2(-1, 0));
+    ScalarParameterControl(m_formantGenerator.flutter(),
+                           "Fl\u2098\u2090\u2093 :", 7.5 * em());
+
+    if (!m_formantGenerator.flutterToggle().value()) ImGui::EndDisabled();
+
+    if (m_doBypassFilter) ImGui::EndDisabled();
+
+    ImGui::EndGroupPanel();  // Filter
+
+    ImGui::EndGroupPanel();  // Synthesizer
+
+    ImGui::EndChild();  // ChildR
+
+    ImGui::EndChild();  // ContainerTop
+
+    ImGui::BeginChild("ContainerBottom", ImVec2(-1, containerBottomHeight));
+
+    ImGui::BeginGroupPanel("Spectrum", ImVec2(spectrumPlotWidth, 0));
 
     const float spectrumPlotHeight = ImGui::GetContentRegionAvail().y - 0.5f * em();
 
-    if (ImPlot::BeginPlot("##specplot", ImVec2(-1, spectrumPlotHeight),
+    if (ImPlot::BeginPlot("##specplot", ImVec2(spectrumPlotWidth, spectrumPlotHeight),
                           ImPlotFlags_NoFrame)) {
         ImPlot::SetupAxis(ImAxis_X1, "Frequency [Hz]", ImPlotAxisFlags_None);
         ImPlot::SetupAxisLimitsConstraints(ImAxis_X1, 8, m_audioOutput.sampleRate() / 2);
@@ -428,7 +455,39 @@ void SourceModelApp::renderMain() {
 
     ImGui::EndGroupPanel();  // Spectrum
 
-    ImGui::EndChild();  // ChildR
+    ImGui::SameLine();
+
+    ImGui::BeginGroupPanel("Spectrum settings",
+                           ImVec2(spectrumSettingsWidth, spectrumPlotHeight));
+
+    ImGui::SetNextItemWidth(10 * em());
+    if (ImGui::BeginCombo("Frequency scale",
+                          FrequencyScale_Name(m_spectrumFrequencyScale))) {
+        for (int i = 0; i < FrequencyScale_COUNT; ++i) {
+            const auto scale = static_cast<FrequencyScale>(i);
+            if (ImGui::Selectable(FrequencyScale_Name(scale),
+                                  scale == m_spectrumFrequencyScale)) {
+                m_spectrumFrequencyScale = scale;
+            }
+        }
+        ImGui::EndCombo();
+    }
+
+    ImGui::SetNextItemWidth(10 * em());
+    const int nfft = m_sourceSpectrum.transformSize();
+    if (ImGui::BeginCombo("Transform size", std::to_string(nfft).c_str())) {
+        for (int N = 512; N <= 32768; N *= 2) {
+            if (ImGui::Selectable(std::to_string(N).c_str(), N == nfft)) {
+                m_sourceSpectrum.setTransformSize(N);
+                m_formantSpectrum.setTransformSize(N);
+            }
+        }
+        ImGui::EndCombo();
+    }
+
+    ImGui::EndGroupPanel();  // Spectrum settings
+
+    ImGui::EndChild();  // ContainerBottom
 
     m_sourceSpectrum.update();
     m_formantSpectrum.update();
@@ -437,10 +496,8 @@ void SourceModelApp::renderMain() {
 
 void SourceModelApp::renderOther() {}
 
-void SourceModelApp::renderSourceParameterControl(GlottalFlowParameter& param,
-                                                  const char*           name,
-                                                  const char*           displayName,
-                                                  const float           itemX) {
+void SourceModelApp::SourceParameterControl(ScalarParameter& param, const char* name,
+                                            const char* displayName, const float itemX) {
     if (param.isFixed()) {
         ImGui::AlignTextToFramePadding();
         ImGui::Text("%s = %g", displayName, param.value());
@@ -463,34 +520,50 @@ void SourceModelApp::renderSourceParameterControl(GlottalFlowParameter& param,
     }
 }
 
-void SourceModelApp::renderFormantParameterControl(const int k, const float fLabelW,
-                                                   const float bLabelW,
-                                                   const float gLabelW) {
-    constexpr const char* subscriptK[5] = {"\u2081", "\u2082", "\u2083", "\u2084",
-                                           "\u2085"};
+void SourceModelApp::FormantParameterControl(const int k) {
+    static constexpr const char* subscriptK[5] = {"\u2081", "\u2082", "\u2083", "\u2084",
+                                                  "\u2085"};
 
     static constexpr int bufferLength = 32;
     static char          fieldLabel[bufferLength];
-    static char          fieldId[bufferLength];
 
-    snprintf(fieldLabel, bufferLength, "f%s:", subscriptK[k]);
-    snprintf(fieldId, bufferLength, "##param_F%d", (k + 1));
+    snprintf(fieldLabel, bufferLength, "f%s :", subscriptK[k]);
 
-    Scalar freq = m_formantGenerator.frequency(k);
-    if (ScrollableDrag(fieldLabel, fLabelW, fieldId, 15 * em(), &freq, 200.0, 6000.0,
-                       "%g Hz")) {
-        m_formantGenerator.setFrequency(k, freq);
-    }
+    ScalarParameterControl(m_formantGenerator.frequency(k), fieldLabel, 15 * em(),
+                           "%g Hz");
 
     ImGui::SameLine();
 
-    snprintf(fieldLabel, bufferLength, "b%s:", subscriptK[k]);
-    snprintf(fieldId, bufferLength, "##param_B%d", (k + 1));
+    snprintf(fieldLabel, bufferLength, "b%s :", subscriptK[k]);
 
-    Scalar band = m_formantGenerator.bandwidth(k);
-    if (ScrollableDrag(fieldLabel, bLabelW, fieldId, 7.5 * em(), &band, 10.0, 600.0,
-                       "%g Hz")) {
-        m_formantGenerator.setBandwidth(k, band);
+    ScalarParameterControl(m_formantGenerator.bandwidth(k), fieldLabel, 7.5 * em(),
+                           "%g Hz");
+}
+
+void SourceModelApp::ScalarParameterControl(ScalarParameter& param,
+                                            const char* displayName, const float fieldW,
+                                            const char* format, float labelW) {
+    static constexpr int bufferLength = 32;
+    static char          fieldId[bufferLength];
+
+    if (labelW == -1) {
+        labelW = ImGui::CalcTextSize(displayName).x + ImGui::GetStyle().ItemSpacing.x;
+    }
+
+    snprintf(fieldId, bufferLength, "##param_%s", param.name().c_str());
+
+    Scalar value = param.value();
+    if (ScrollableDrag(displayName, labelW, fieldId, fieldW, &value, param.min(),
+                       param.max(), format)) {
+        param.setValue(value);
+    }
+}
+
+void SourceModelApp::ToggleParameterControl(ToggleParameter& param,
+                                            const char*      displayName) {
+    bool value = param.value();
+    if (ImGui::Checkbox(displayName, &value)) {
+        param.setValue(value);
     }
 }
 

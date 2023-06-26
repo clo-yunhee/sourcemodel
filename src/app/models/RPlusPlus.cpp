@@ -51,7 +51,7 @@ Scalar RPlusPlus::evaluateAntiderivative(Scalar t) const {
     return g;
 }
 
-void RPlusPlus::fitParameters(const GlottalFlowParameters& params) {
+void RPlusPlus::fitParameters(GlottalFlowParameters& params) {
     static constexpr Scalar E = 1;
     static constexpr Scalar T0 = 1;
 
